@@ -19,6 +19,7 @@ describe("Wallet", function () {
     it("Should set the right owner", async function () {
       const { wallet, owner } = await loadFixture(deployWalletFixture);
       // expect(await wallet.owner()).to.equal(owner.address);
+      await wallet.createWallet(0);
     });
 
     // TODO: Write tests for contract methods

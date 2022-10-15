@@ -26,7 +26,15 @@ contract XENWallet is IXENCrypto {
     function createWallet(uint256 _id) public {
         bytes32 salt = keccak256(abi.encodePacked(msg.sender, _id));
         address proxy = Clones.cloneDeterministic(address(this), salt);
+        
         // TODO: Check if the following is valid in Solidity (empty dynamic array)
+
+        // bytes memory bytecode = bytes.concat(bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73), bytes20(address(this)), bytes15(0x5af43d82803e903d91602b57fd5bf3));
+		// address proxy;
+        // assembly {
+        //     proxy := create2(0, add(bytecode, 32), mload(bytecode), salt)
+        // }
+
         addressResolver[msg.sender].push(proxy);
         reverseAddressResolver[proxy] = msg.sender;
     }
