@@ -35,10 +35,11 @@ contract XENWalletFactory {
     }
 
     // Create wallets
-    function createWallet(uint256 _id) public {
+    function createWallet(uint256 _id, uint256 term) public {
         bytes32 salt = getSalt(_id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
         clone.initialize(XENCrypto);
+        clone.claimRank(term); // unsure if should be combined with initialize
         
         // TODO: Check if the following is valid in Solidity (empty dynamic array)
 
@@ -52,9 +53,9 @@ contract XENWalletFactory {
         reverseAddressResolver[address(clone)] = msg.sender;
     }
 
-    function batchCreateWallet(uint256 _startId, uint256 _endId) external {
+    function batchCreateWallet(uint256 _startId, uint256 _endId, uint256 term) external {
 		for(uint256 id = _startId; id < _endId; id++) {
-            createWallet(id);
+            createWallet(id, term);
         }
     }
 }

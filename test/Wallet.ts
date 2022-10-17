@@ -63,7 +63,19 @@ describe("Wallet", function () {
       const salt = await factory.getSalt(id);
       const addressToBe = await factory.getDeterministicAddress(salt);
 
-      await factory.createWallet(id);
+      await factory.createWallet(id, 5);
+
+      const storedAddress = await factory.reverseAddressResolver(addressToBe);
+
+      expect(storedAddress).to.equal(owner.address);
+    });
+
+    it("Batch cloning sets right mapping", async function () {
+      const id = 1;
+      const salt = await factory.getSalt(id);
+      const addressToBe = await factory.getDeterministicAddress(salt);
+
+      await factory.batchCreateWallet(id, id + 1, 5);
 
       const storedAddress = await factory.reverseAddressResolver(addressToBe);
 

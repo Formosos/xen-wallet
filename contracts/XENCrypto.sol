@@ -14,5 +14,7 @@ contract XENCrypto is IXENCrypto  {
 	function claimMintRewardAndShare(address other, uint256 pct) external {
 
     }
+
+    // TODO: copy right XEN functionality
 	
 }

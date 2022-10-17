@@ -9,15 +9,15 @@ import "./interfaces/IXENCrypto.sol";
 
 contract XENWallet is Initializable {
 
-	address public XENCrypto;
+	IXENCrypto public XENCrypto;
 
     function initialize(address xenAddress) public initializer {
-        XENCrypto = xenAddress;
+        XENCrypto = IXENCrypto(xenAddress);
     }
 
     // Claim ranks
 	function claimRank(uint256 _term) public {
-		IXENCrypto(XENCrypto).claimRank(_term);
+		XENCrypto.claimRank(_term);
 	}
 
 	function batchClaimRank(uint256 _startId, uint256 _endId, uint256 _term) external {

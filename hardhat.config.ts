@@ -11,6 +11,9 @@ const config: HardhatUserConfig = {
         runs: 1,
       },
     },
+  },
+  gasReporter: {
+    enabled: true
   }
 };
 
