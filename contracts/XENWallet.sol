@@ -4,45 +4,15 @@ pragma solidity ^0.8.9;
 // import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./interfaces/IXENCrypto.sol";
 
-contract XENWallet is IXENCrypto {
+contract XENWallet is Initializable {
 
-    address private immutable original;
-	address private immutable deployer;
-	address private constant XENCrypto = 0xca41f293A32d25c2216bC4B30f5b0Ab61b6ed2CB;
+	address public XENCrypto;
 
-    // Use address resolver to derive proxy address
-    // Mint and staking information is derived through XENCrypto contract
-    mapping (address => address[]) private addressResolver;
-    mapping (address => address) private reverseAddressResolver;
-
-	constructor() {
-        original = address(this);
-		deployer = msg.sender;
-	}
-
-    // Create wallets
-    function createWallet(uint256 _id) public {
-        bytes32 salt = keccak256(abi.encodePacked(msg.sender, _id));
-        address proxy = Clones.cloneDeterministic(address(this), salt);
-        
-        // TODO: Check if the following is valid in Solidity (empty dynamic array)
-
-        // bytes memory bytecode = bytes.concat(bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73), bytes20(address(this)), bytes15(0x5af43d82803e903d91602b57fd5bf3));
-		// address proxy;
-        // assembly {
-        //     proxy := create2(0, add(bytecode, 32), mload(bytecode), salt)
-        // }
-
-        addressResolver[msg.sender].push(proxy);
-        reverseAddressResolver[proxy] = msg.sender;
-    }
-
-    function batchCreateWallet(uint256 _startId, uint256 _endId) external {
-		for(uint256 id = _startId; id < _endId; id++) {
-            createWallet(id);
-        }
+    function initialize(address xenAddress) public initializer {
+        XENCrypto = xenAddress;
     }
 
     // Claim ranks
@@ -61,14 +31,12 @@ contract XENWallet is IXENCrypto {
     // Claim mint reward
 	function claimMintReward() external {
 		IXENCrypto(XENCrypto).claimMintReward();
-		if(address(this) != original)
-		    selfdestruct(payable(tx.origin));
+		selfdestruct(payable(tx.origin));
 	}
 
 	function claimMintRewardAndShare(address _to, uint256 _amount) external {
 		IXENCrypto(XENCrypto).claimMintRewardAndShare(_to, _amount);
-		if(address(this) != original)
-		    selfdestruct(payable(tx.origin));
+		selfdestruct(payable(tx.origin));
 	}
 
     function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
@@ -83,10 +51,10 @@ contract XENWallet is IXENCrypto {
 
     function safeMintReward(address _proxy) external {
         // Verify that the deployer is saving people (we could leave this open)
-        require(msg.sender == deployer);
+        //require(msg.sender == deployer);
 
-		XENWallet(_proxy).claimMintRewardAndShare(reverseAddressResolver[_proxy], 90);
-		XENWallet(_proxy).claimMintRewardAndShare(deployer, 10);
+		//XENWallet(_proxy).claimMintRewardAndShare(reverseAddressResolver[_proxy], 90);
+		//XENWallet(_proxy).claimMintRewardAndShare(deployer, 10);
 
         // TODO: Logic to understand if a day has passed (deployer can end stake under specific conditions)
 
@@ -102,7 +70,7 @@ contract XENWallet is IXENCrypto {
 
     // TBD ...
 
-    function getActiveWallets(address _address) external view returns (address[] memory) {
+   /*  function getActiveWallets(address _address) external view returns (address[] memory) {
         return addressResolver[_address];
-    }
+    } */
 }
