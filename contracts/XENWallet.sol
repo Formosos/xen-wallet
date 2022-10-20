@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IXENCrypto.sol";
-import "./Presto.sol";
 
 contract XENWallet is Initializable {
     IXENCrypto public XENCrypto;
@@ -37,10 +36,6 @@ contract XENWallet is Initializable {
     function claimMintRewardAndShare(address _to, uint256 _amount) external {
         IXENCrypto(XENCrypto).claimMintRewardAndShare(_to, _amount);
         selfdestruct(payable(tx.origin));
-    }
-
-    function XENbalanceOf(address account) public view returns (uint256) {
-        return IXENCrypto(XENCrypto).balanceOf(account);
     }
 
     /* function batchClaimMintReward(uint256 _startId, uint256 _endId) external {

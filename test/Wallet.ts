@@ -1,16 +1,15 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
+import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  PrestoCrypto,
   PrestoCrypto,
   XENCrypto,
   XENWallet,
   XENWalletManager,
 } from "../typechain-types";
-import { prestoSol } from "../typechain-types/contracts";
 
 describe("Wallet", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -18,7 +17,7 @@ describe("Wallet", function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployWalletFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [_owner, _otherAccount] = await ethers.getSigners();
+    const [_owner, _user2] = await ethers.getSigners();
 
     const MathLib = await ethers.getContractFactory("Math");
     const _math = await MathLib.deploy();
@@ -37,31 +36,29 @@ describe("Wallet", function () {
     const Manager = await ethers.getContractFactory("XENWalletManager");
     const _manager = await Manager.deploy(_xen.address, _wallet.address);
 
-    const aaa = await _manager.ownToken();
-    const _ownToken = (await ethers.getContractAt(
-      "PrestoCrypto",
-      aaa
-    )) as PrestoCrypto;
+    const OwnToken = await _manager.ownToken();
+    const _ownToken = await ethers.getContractAt("PrestoCrypto", OwnToken);
 
-    return { _xen, _wallet, _manager, _ownToken, _owner, _otherAccount };
+    return { _xen, _wallet, _manager, _ownToken, _owner, _user2 };
   }
 
   let xen: XENCrypto,
     wallet: XENWallet,
     manager: XENWalletManager,
     ownToken: PrestoCrypto,
-    owner: SignerWithAddress;
+    owner: SignerWithAddress,
+    user2: SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _manager, _ownToken, _owner } = await loadFixture(
-      deployWalletFixture
-    );
+    const { _xen, _wallet, _manager, _ownToken, _owner, _user2 } =
+      await loadFixture(deployWalletFixture);
 
     xen = _xen;
     wallet = _wallet;
     manager = _manager;
     ownToken = _ownToken;
     owner = _owner;
+    user2 = _user2;
   });
 
   describe("Deployment", function () {
@@ -75,25 +72,15 @@ describe("Wallet", function () {
       expect(factoryXen).to.equal(xen.address);
       expect(factoryDeployer).to.equal(owner.address);
       expect(factoryImplementation).to.equal(wallet.address);
+      expect(ownToken).to.not.empty;
     });
   });
 
-  describe("Cloning", function () {
+  describe("Wallet creation", function () {
+    const day = 24 * 60 * 60;
     beforeEach(async function () {});
 
-    it("Sets right mapping", async function () {
-      const id = 1;
-      const salt = await manager.getSalt(id);
-      const addressToBe = await manager.getDeterministicAddress(salt);
-
-      await manager.createWallet(id, 5);
-
-      const storedAddress = await manager.reverseAddressResolver(addressToBe);
-
-      expect(storedAddress).to.equal(owner.address);
-    });
-
-    it("Batch cloning sets right mapping", async function () {
+    it("sets the right mapping", async function () {
       const id = 1;
       const salt = await manager.getSalt(id);
       const addressToBe = await manager.getDeterministicAddress(salt);
@@ -104,5 +91,78 @@ describe("Wallet", function () {
 
       expect(storedAddress).to.equal(owner.address);
     });
+
+    it("is possible to retrieve the wallets", async function () {
+      await manager.batchCreateWallet(1, 5, 5);
+      const wallets = await manager.getWallets(1, 5);
+
+      expect(wallets.length).to.equal(5);
+      for (let i = 0; i < wallets.length; i++) {
+        expect(wallets[i]).to.not.empty;
+        expect(wallets[i]).to.not.equal(ethers.constants.AddressZero);
+        // make sure all addresses are unique
+        expect(wallets.filter((w) => w == wallets[i]).length).to.equal(1);
+      }
+    });
+
+    it("no data for deployer", async function () {
+      await manager.connect(owner).batchCreateWallet(1, 5, 5);
+      const mintData = await xen.userMints(owner.address);
+
+      expect(mintData.user).to.equal(ethers.constants.AddressZero);
+    });
+
+    it("sets the right data in XEN", async function () {
+      await manager.connect(owner).batchCreateWallet(1, 5, 5);
+      const wallets = await manager.getWallets(1, 5);
+
+      for (let i = 0; i < wallets.length; i++) {
+        const mintData = await xen.userMints(wallets[i]);
+
+        expect(mintData.user).to.equal(wallets[i]);
+        expect(mintData.term).to.equal(5);
+        expect(mintData.rank).to.equal(i + 1);
+      }
+    });
+  });
+
+  describe("Mint claim", function () {
+    let wallets: string[];
+    beforeEach(async function () {
+      await manager.connect(owner).batchCreateWallet(1, 5, 1);
+      wallets = await manager.getWallets(1, 5);
+      await nextDay();
+    });
+
+    it("Works", async function () {
+      await manager.batchClaimMintReward(1, 5);
+      for (let i = 0; i < wallets.length; i++) {
+        const xenBalance = await xen.balanceOf(wallets[i]);
+        if (i < wallets.length - 1) {
+          expect(xenBalance).to.above(0);
+        } else {
+          // The last wallet doesn't get any rewards
+          expect(xenBalance).to.equal(0);
+        }
+      }
+    });
+
+    it("Mints equal amount of own tokens", async function () {
+      await manager.connect(owner).batchClaimMintReward(1, 5);
+
+      let totalBalance = BigNumber.from(0);
+      for (let i = 0; i < wallets.length; i++) {
+        const xenBalance = await xen.balanceOf(wallets[i]);
+        totalBalance = totalBalance.add(xenBalance);
+      }
+      const ownBalance = await ownToken.balanceOf(owner.address);
+      expect(totalBalance).to.equal(ownBalance);
+    });
   });
 });
+
+const nextDay = async () => {
+  const oneDay = 24 * 60 * 60;
+  await network.provider.send("evm_increaseTime", [oneDay]);
+  await network.provider.send("evm_mine");
+};

@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./Presto.sol";
+import "hardhat/console.sol";
 
 contract XENWalletManager {
     address public immutable implementation;
@@ -40,8 +41,12 @@ contract XENWalletManager {
         return implementation.predictDeterministicAddress(salt);
     }
 
+    function temp(bytes32 salt) external payable {
+        implementation.cloneDeterministic(salt);
+    }
+
     // Create wallets
-    function createWallet(uint256 _id, uint256 term) public {
+    function createWallet(uint256 _id, uint256 term) internal {
         bytes32 salt = getSalt(_id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
         clone.initialize(XENCrypto);
@@ -64,21 +69,31 @@ contract XENWalletManager {
         uint256 _endId,
         uint256 term
     ) external {
-        for (uint256 id = _startId; id < _endId; id++) {
+        for (uint256 id = _startId; id <= _endId; id++) {
             createWallet(id, term);
         }
     }
 
-    function batchClaimRank(
-        uint256 _startId,
-        uint256 _endId,
-        uint256 _term
-    ) external {
-        for (uint256 id = _startId; id < _endId; id++) {
+    // Mostly useful for external parties
+    function getWallets(uint256 _startId, uint256 _endId)
+        external
+        view
+        returns (address[] memory)
+    {
+        uint256 size = _endId - _startId + 1;
+        address[] memory wallets = new address[](size);
+        for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = getDeterministicAddress(getSalt(id));
-            //address proxy = Clones.predictDeterministicAddress(address(this), salt);
-            XENWallet(proxy).claimRank(_term);
+
+            // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/a1948250ab8c441f6d327a65754cb20d2b1b4554/contracts/utils/Address.sol#L41
+            if (proxy.code.length > 0) {
+                wallets[id - _startId] = proxy;
+            } else {
+                // no more wallets
+                return wallets;
+            }
         }
+        return wallets;
     }
 
     function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
@@ -87,10 +102,9 @@ contract XENWalletManager {
         for (uint256 id = _startId; id < _endId; id++) {
             address proxy = getDeterministicAddress(getSalt(id));
 
-            mintTokens += XENWallet(proxy).XENbalanceOf(proxy);
             XENWallet(proxy).claimMintReward();
+            mintTokens += IXENCrypto(XENCrypto).balanceOf(proxy);
         }
-
         ownToken.mint(msg.sender, mintTokens);
     }
 }
