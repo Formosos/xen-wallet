@@ -13,8 +13,8 @@ const config: HardhatUserConfig = {
     },
   },
   gasReporter: {
-    enabled: false
-  }
+    enabled: false,
+  },
 };
 
 export default config;

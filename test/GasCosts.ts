@@ -12,7 +12,7 @@ describe("Gas costs", function () {
 
   it("Regular create", async function () {
     const Deployer = await ethers.getContractFactory("MockDeployer");
-    const deployer = await Deployer.deploy() as MockDeployer;
+    const deployer = (await Deployer.deploy()) as MockDeployer;
     await deployer.deployWallets(walletsToCreate);
   });
 
@@ -24,8 +24,8 @@ describe("Gas costs", function () {
 
     const XEN = await ethers.getContractFactory("XENCrypto", {
       libraries: {
-        Math: _math.address
-      }
+        Math: _math.address,
+      },
     });
     const _xen = await XEN.deploy();
 
@@ -40,4 +40,3 @@ describe("Gas costs", function () {
     await _manager.batchCreateWallet(start, start + walletsToCreate, 5);
   });
 });
-

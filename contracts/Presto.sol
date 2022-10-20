@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 // import "./interfaces/IXENCrypto.sol";
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract PrestoCrypto is ERC20 {
     uint256 internal constant LAUNCH_TIME = 1666254094;
@@ -21,7 +21,6 @@ contract PrestoCrypto is ERC20 {
         require(msg.sender == minter, "No access");
         _mint(account, amount);
     }
-    
 
     // function claimRank(uint256 term) external {
     // }
@@ -29,9 +28,8 @@ contract PrestoCrypto is ERC20 {
     // function claimMintReward() external {
     // }
 
-	// function claimMintRewardAndShare(address other, uint256 pct) external {
+    // function claimMintRewardAndShare(address other, uint256 pct) external {
     // }
 
     // TODO: Copyright XEN functionality
-
 }
