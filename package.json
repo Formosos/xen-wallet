@@ -11,7 +11,7 @@
     "url": "git+https://github.com/innovatios/xen-wallet.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "", 
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/innovatios/xen-wallet/issues"

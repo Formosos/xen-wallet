@@ -10,7 +10,13 @@ import "./interfaces/IRankedMintingToken.sol";
 import "./interfaces/IBurnableToken.sol";
 import "./interfaces/IBurnRedeemable.sol";
 
-contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToken, ERC20("XEN Crypto", "XEN") {
+contract XENCrypto is
+    Context,
+    IRankedMintingToken,
+    IStakingToken,
+    IBurnableToken,
+    ERC20("XEN Crypto", "XEN")
+{
     using Math for uint256;
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
@@ -90,7 +96,11 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
      */
     function _calculateMaxTerm() private view returns (uint256) {
         if (globalRank > TERM_AMPLIFIER_THRESHOLD) {
-            uint256 delta = globalRank.fromUInt().log_2().mul(TERM_AMPLIFIER.fromUInt()).toUInt();
+            uint256 delta = globalRank
+                .fromUInt()
+                .log_2()
+                .mul(TERM_AMPLIFIER.fromUInt())
+                .toUInt();
             uint256 newMax = MAX_TERM_START + delta * SECONDS_IN_DAY;
             return Math.min(newMax, MAX_TERM_END);
         }
@@ -104,7 +114,9 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
         // =MIN(2^(daysLate+3)/window-1,99)
         uint256 daysLate = secsLate / SECONDS_IN_DAY;
         if (daysLate > WITHDRAWAL_WINDOW_DAYS - 1) return MAX_PENALTY_PCT;
-        uint256 penalty = (uint256(1) << (daysLate + 3)) / WITHDRAWAL_WINDOW_DAYS - 1;
+        uint256 penalty = (uint256(1) << (daysLate + 3)) /
+            WITHDRAWAL_WINDOW_DAYS -
+            1;
         return Math.min(penalty, MAX_PENALTY_PCT);
     }
 
@@ -154,9 +166,14 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
      * @dev calculates Reward Amplifier
      */
     function _calculateRewardAmplifier() private view returns (uint256) {
-        uint256 amplifierDecrease = (block.timestamp - genesisTs) / SECONDS_IN_DAY;
+        uint256 amplifierDecrease = (block.timestamp - genesisTs) /
+            SECONDS_IN_DAY;
         if (amplifierDecrease < REWARD_AMPLIFIER_START) {
-            return Math.max(REWARD_AMPLIFIER_START - amplifierDecrease, REWARD_AMPLIFIER_END);
+            return
+                Math.max(
+                    REWARD_AMPLIFIER_START - amplifierDecrease,
+                    REWARD_AMPLIFIER_END
+                );
         } else {
             return REWARD_AMPLIFIER_END;
         }
@@ -176,7 +193,8 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
      * @dev calculates APY (in %)
      */
     function _calculateAPY() private view returns (uint256) {
-        uint256 decrease = (block.timestamp - genesisTs) / (SECONDS_IN_DAY * XEN_APY_DAYS_STEP);
+        uint256 decrease = (block.timestamp - genesisTs) /
+            (SECONDS_IN_DAY * XEN_APY_DAYS_STEP);
         if (XEN_APY_START - XEN_APY_END < decrease) return XEN_APY_END;
         return XEN_APY_START - decrease;
     }
@@ -207,7 +225,10 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
         uint256 eaa
     ) public pure returns (uint256) {
         int128 log128 = rankDelta.fromUInt().log_2();
-        int128 reward128 = log128.mul(amplifier.fromUInt()).mul(term.fromUInt()).mul(eaa.fromUInt());
+        int128 reward128 = log128
+            .mul(amplifier.fromUInt())
+            .mul(term.fromUInt())
+            .mul(eaa.fromUInt());
         return reward128.div(uint256(1_000).fromUInt()).toUInt();
     }
 
@@ -261,8 +282,14 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
     function claimRank(uint256 term) external {
         uint256 termSec = term * SECONDS_IN_DAY;
         require(termSec > MIN_TERM, "CRank: Term less than min");
-        require(termSec < _calculateMaxTerm() + 1, "CRank: Term more than current max term");
-        require(userMints[_msgSender()].rank == 0, "CRank: Mint already in progress");
+        require(
+            termSec < _calculateMaxTerm() + 1,
+            "CRank: Term more than current max term"
+        );
+        require(
+            userMints[_msgSender()].rank == 0,
+            "CRank: Mint already in progress"
+        );
 
         // create and store new MintInfo
         MintInfo memory mintInfo = MintInfo({
@@ -284,7 +311,10 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
     function claimMintReward() external {
         MintInfo memory mintInfo = userMints[_msgSender()];
         require(mintInfo.rank > 0, "CRank: No mint exists");
-        require(block.timestamp > mintInfo.maturityTs, "CRank: Mint maturity not reached");
+        require(
+            block.timestamp > mintInfo.maturityTs,
+            "CRank: Mint maturity not reached"
+        );
 
         // calculate reward and mint tokens
         uint256 rewardAmount = _calculateMintReward(
@@ -310,7 +340,10 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
         require(pct > 0, "CRank: Cannot share zero percent");
         require(pct < 101, "CRank: Cannot share 100+ percent");
         require(mintInfo.rank > 0, "CRank: No mint exists");
-        require(block.timestamp > mintInfo.maturityTs, "CRank: Mint maturity not reached");
+        require(
+            block.timestamp > mintInfo.maturityTs,
+            "CRank: Mint maturity not reached"
+        );
 
         // calculate reward
         uint256 rewardAmount = _calculateMintReward(
@@ -340,7 +373,10 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
         // require(pct > 0, "CRank: Cannot share zero percent");
         require(pct < 101, "CRank: Cannot share >100 percent");
         require(mintInfo.rank > 0, "CRank: No mint exists");
-        require(block.timestamp > mintInfo.maturityTs, "CRank: Mint maturity not reached");
+        require(
+            block.timestamp > mintInfo.maturityTs,
+            "CRank: Mint maturity not reached"
+        );
 
         // calculate reward
         uint256 rewardAmount = _calculateMintReward(
@@ -362,7 +398,10 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
         // stake extra tokens part
         require(stakedReward > XEN_MIN_STAKE, "XEN: Below min stake");
         require(term * SECONDS_IN_DAY > MIN_TERM, "XEN: Below min stake term");
-        require(term * SECONDS_IN_DAY < MAX_TERM_END + 1, "XEN: Above max stake term");
+        require(
+            term * SECONDS_IN_DAY < MAX_TERM_END + 1,
+            "XEN: Above max stake term"
+        );
         require(userStakes[_msgSender()].amount == 0, "XEN: stake exists");
 
         _createStake(stakedReward, term);
@@ -376,7 +415,10 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
         require(balanceOf(_msgSender()) >= amount, "XEN: not enough balance");
         require(amount > XEN_MIN_STAKE, "XEN: Below min stake");
         require(term * SECONDS_IN_DAY > MIN_TERM, "XEN: Below min stake term");
-        require(term * SECONDS_IN_DAY < MAX_TERM_END + 1, "XEN: Above max stake term");
+        require(
+            term * SECONDS_IN_DAY < MAX_TERM_END + 1,
+            "XEN: Above max stake term"
+        );
         require(userStakes[_msgSender()].amount == 0, "XEN: stake exists");
 
         // burn staked XEN
@@ -414,7 +456,9 @@ contract XENCrypto is Context, IRankedMintingToken, IStakingToken, IBurnableToke
     function burn(address user, uint256 amount) public {
         require(amount > XEN_MIN_BURN, "Burn: Below min limit");
         require(
-            IERC165(_msgSender()).supportsInterface(type(IBurnRedeemable).interfaceId),
+            IERC165(_msgSender()).supportsInterface(
+                type(IBurnRedeemable).interfaceId
+            ),
             "Burn: not a supported contract"
         );
 

@@ -5,10 +5,10 @@ pragma solidity ^0.8.9;
 
 import "../XENWallet.sol";
 
-contract MockDeployer  {
+contract MockDeployer {
     function deployWallets(uint256 amount) external {
         for (uint256 i; i < amount; ++i) {
             new XENWallet();
         }
-    }	
+    }
 }
