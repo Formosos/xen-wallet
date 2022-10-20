@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 
-contract XENWalletFactory {
+contract XENWalletManager {
 
     address public immutable implementation;
 	address public immutable deployer;

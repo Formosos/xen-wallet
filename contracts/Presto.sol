@@ -12,6 +12,11 @@ contract PrestoCrypto is ERC20 {
     function currentDay() external view returns (uint256) {
         return (block.timestamp - LAUNCH_TIME) / 1 days;
     }
+
+    function mint(address account, uint256 amount) external {
+        
+        _mint(account, amount);
+    }
     
 
     // function claimRank(uint256 term) external {
