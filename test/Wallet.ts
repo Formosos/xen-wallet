@@ -3,7 +3,7 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { XENCrypto, XENWallet, XENWalletFactory } from "../typechain-types";
+import { XENCrypto, XENWallet, XENWalletManager} from "../typechain-types";
 
 describe("Wallet", function () {
 
@@ -14,27 +14,34 @@ describe("Wallet", function () {
     // Contracts are deployed using the first signer/account by default
     const [_owner, _otherAccount] = await ethers.getSigners();
 
-    const XEN = await ethers.getContractFactory("XENCrypto");
+    const MathLib = await ethers.getContractFactory("Math");
+    const _math = await MathLib.deploy();
+
+    const XEN = await ethers.getContractFactory("XENCrypto", {
+      libraries: {
+        Math: _math.address
+      }
+    });
     const _xen = await XEN.deploy();
 
     const Wallet = await ethers.getContractFactory("XENWallet");
     const _wallet = await Wallet.deploy();
     await _wallet.initialize(_xen.address);
 
-    const Factory = await ethers.getContractFactory("XENWalletFactory");
-    const _factory = await Factory.deploy(_xen.address, _wallet.address);
+    const Manager = await ethers.getContractFactory("XENWalletManager");
+    const _manager = await Manager.deploy(_xen.address, _wallet.address);
 
-    return { _xen, _wallet, _factory, _owner, _otherAccount };
+    return { _xen, _wallet, _manager, _owner, _otherAccount };
   }
 
-  let xen : XENCrypto, wallet : XENWallet, factory : XENWalletFactory, owner : SignerWithAddress;
+  let xen : XENCrypto, wallet : XENWallet, manager : XENWalletManager, owner : SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _factory, _owner } = await loadFixture(deployWalletFixture);
+    const { _xen, _wallet, _manager, _owner } = await loadFixture(deployWalletFixture);
 
     xen = _xen;
     wallet = _wallet;
-    factory  = _factory;
+    manager  = _manager;
     owner = _owner;
   });
 
@@ -42,9 +49,9 @@ describe("Wallet", function () {
     it("Should set the right values", async function () {
 
       const walletXen = await wallet.XENCrypto();
-      const factoryXen = await factory.XENCrypto();
-      const factoryDeployer = await factory.deployer();
-      const factoryImplementation = await factory.implementation();
+      const factoryXen = await manager.XENCrypto();
+      const factoryDeployer = await manager.deployer();
+      const factoryImplementation = await manager.implementation();
 
       expect(walletXen).to.equal(xen.address);
       expect(factoryXen).to.equal(xen.address);
@@ -60,24 +67,24 @@ describe("Wallet", function () {
 
     it("Sets right mapping", async function () {
       const id = 1;
-      const salt = await factory.getSalt(id);
-      const addressToBe = await factory.getDeterministicAddress(salt);
+      const salt = await manager.getSalt(id);
+      const addressToBe = await manager.getDeterministicAddress(salt);
 
-      await factory.createWallet(id, 5);
+      await manager.createWallet(id, 5);
 
-      const storedAddress = await factory.reverseAddressResolver(addressToBe);
+      const storedAddress = await manager.reverseAddressResolver(addressToBe);
 
       expect(storedAddress).to.equal(owner.address);
     });
 
     it("Batch cloning sets right mapping", async function () {
       const id = 1;
-      const salt = await factory.getSalt(id);
-      const addressToBe = await factory.getDeterministicAddress(salt);
+      const salt = await manager.getSalt(id);
+      const addressToBe = await manager.getDeterministicAddress(salt);
 
-      await factory.batchCreateWallet(id, id + 1, 5);
+      await manager.batchCreateWallet(id, id + 1, 5);
 
-      const storedAddress = await factory.reverseAddressResolver(addressToBe);
+      const storedAddress = await manager.reverseAddressResolver(addressToBe);
 
       expect(storedAddress).to.equal(owner.address);
     });
