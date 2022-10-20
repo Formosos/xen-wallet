@@ -3,7 +3,8 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { XENCrypto, XENWallet, XENWalletManager} from "../typechain-types";
+import { PrestoCrypto, PrestoCrypto, XENCrypto, XENWallet, XENWalletManager} from "../typechain-types";
+import { prestoSol } from "../typechain-types/contracts";
 
 describe("Wallet", function () {
 
@@ -31,17 +32,21 @@ describe("Wallet", function () {
     const Manager = await ethers.getContractFactory("XENWalletManager");
     const _manager = await Manager.deploy(_xen.address, _wallet.address);
 
-    return { _xen, _wallet, _manager, _owner, _otherAccount };
+    const aaa = await _manager.ownToken();
+    const _ownToken = await ethers.getContractAt("PrestoCrypto",aaa) as PrestoCrypto;
+
+    return { _xen, _wallet, _manager, _ownToken, _owner, _otherAccount };
   }
 
-  let xen : XENCrypto, wallet : XENWallet, manager : XENWalletManager, owner : SignerWithAddress;
+  let xen : XENCrypto, wallet : XENWallet, manager : XENWalletManager, ownToken : PrestoCrypto, owner : SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _manager, _owner } = await loadFixture(deployWalletFixture);
+    const { _xen, _wallet, _manager, _ownToken, _owner } = await loadFixture(deployWalletFixture);
 
     xen = _xen;
     wallet = _wallet;
     manager  = _manager;
+    ownToken = _ownToken;
     owner = _owner;
   });
 
