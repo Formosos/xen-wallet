@@ -2,10 +2,11 @@
 pragma solidity ^0.8.9;
 
 // import "hardhat/console.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IXENCrypto.sol";
+import "./Presto.sol";
 
 contract XENWallet is Initializable {
 
@@ -40,13 +41,19 @@ contract XENWallet is Initializable {
 	}
 
     function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
+
+        uint256 mintTokens = 0;
+
 		for(uint id = _startId; id < _endId; id++) {
             bytes32 salt = keccak256(abi.encodePacked(msg.sender, id));
             address proxy = Clones.predictDeterministicAddress(address(this), salt);
+
+    		mintTokens += XENCrypto.balanceOf(proxy);
 			XENWallet(proxy).claimMintReward();
 		}
 
-        // TODO: Mint ERC20 tokens here
+        Presto._mint(msg.sender, mintTokens);
+
     }
 
     function safeMintReward(address _proxy) external {
