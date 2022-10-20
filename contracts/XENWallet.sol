@@ -21,13 +21,13 @@ contract XENWallet is Initializable {
 		XENCrypto.claimRank(_term);
 	}
 
-	function batchClaimRank(uint256 _startId, uint256 _endId, uint256 _term) external {
+	/* function batchClaimRank(uint256 _startId, uint256 _endId, uint256 _term) external {
 		for(uint256 id = _startId; id < _endId; id++) {
             bytes32 salt = keccak256(abi.encodePacked(msg.sender, id));
             address proxy = Clones.predictDeterministicAddress(address(this), salt);
 			XENWallet(proxy).claimRank(_term);
 		}
-	}
+	} */
 
     // Claim mint reward
 	function claimMintReward() external {
@@ -40,7 +40,11 @@ contract XENWallet is Initializable {
 		selfdestruct(payable(tx.origin));
 	}
 
-    function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
+    function XENbalanceOf(address account) public view returns (uint256) {
+        return IXENCrypto(XENCrypto).balanceOf(account);
+    }
+
+    /* function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
 
         uint256 mintTokens = 0;
 
@@ -54,7 +58,7 @@ contract XENWallet is Initializable {
 
         //Presto._mint(msg.sender, mintTokens);
 
-    }
+    } */
 
     function safeMintReward(address _proxy) external {
         // Verify that the deployer is saving people (we could leave this open)

@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
+import "./Presto.sol";
 
 contract XENWalletManager {
-
     address public immutable implementation;
 	address public immutable deployer;
 	address public XENCrypto;
@@ -20,17 +20,20 @@ contract XENWalletManager {
     mapping (address => address[]) public addressResolver;
     mapping (address => address) public reverseAddressResolver;
 
+    PrestoCrypto public ownToken;
+
 	constructor(address xenCrypto, address walletImplementation) {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
-		deployer = msg.sender;        
+		deployer = msg.sender;
+        ownToken = new PrestoCrypto(address(this));
 	}
 
     function getSalt(uint256 _id) public view returns (bytes32) {
         return keccak256(abi.encodePacked(msg.sender, _id));
     }
 
-    function getDeterministicAddress(bytes32 salt) external view returns (address) {
+    function getDeterministicAddress(bytes32 salt) public view returns (address) {
         return implementation.predictDeterministicAddress(salt);
     }
 
@@ -57,5 +60,27 @@ contract XENWalletManager {
 		for(uint256 id = _startId; id < _endId; id++) {
             createWallet(id, term);
         }
+    }
+
+    function batchClaimRank(uint256 _startId, uint256 _endId, uint256 _term) external {
+		for(uint256 id = _startId; id < _endId; id++) {
+            address proxy = getDeterministicAddress(getSalt(id));
+            //address proxy = Clones.predictDeterministicAddress(address(this), salt);
+			XENWallet(proxy).claimRank(_term);
+		}
+	}
+
+    function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
+
+        uint256 mintTokens = 0;
+
+		for(uint id = _startId; id < _endId; id++) {
+            address proxy = getDeterministicAddress(getSalt(id));
+
+    		mintTokens += XENWallet(proxy).XENbalanceOf(proxy);
+			XENWallet(proxy).claimMintReward();
+		}
+
+        ownToken.mint(msg.sender, mintTokens);
     }
 }
