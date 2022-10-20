@@ -52,7 +52,7 @@ contract XENWallet is Initializable {
 			XENWallet(proxy).claimMintReward();
 		}
 
-        Presto._mint(msg.sender, mintTokens);
+        //Presto._mint(msg.sender, mintTokens);
 
     }
 

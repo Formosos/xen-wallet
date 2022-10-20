@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-interface IXENCrypto {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+abstract contract IXENCrypto is IERC20 {
 
     // TODO: Check how to use events
     event RankClaimed(address indexed user, uint256 term, uint256 rank);
@@ -14,10 +16,10 @@ interface IXENCrypto {
     // TODO: Check how public functions are integrated and if we need to define parameters
     // function getCurrentAPY() external;
     // function getCurrentMaxTerm() external;
-    function claimRank(uint256 term) external;
+    function claimRank(uint256 term) virtual external;
 
-    function claimMintReward() external;
-	function claimMintRewardAndShare(address other, uint256 pct) external;
+    function claimMintReward() virtual external;
+	function claimMintRewardAndShare(address other, uint256 pct) virtual external;
 
     // function claimMintRewardAndStake(uint256 pct, uint256 term) external;
 
