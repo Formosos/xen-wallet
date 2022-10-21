@@ -99,7 +99,7 @@ contract XENWalletManager {
     function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
         uint256 mintTokens = 0;
 
-        for (uint256 id = _startId; id < _endId; id++) {
+        for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = getDeterministicAddress(getSalt(id));
 
             XENWallet(proxy).claimMintReward();
