@@ -36,7 +36,7 @@ async function main() {
   const Wallet = await ethers.getContractFactory("XENWallet");
   const _wallet = await Wallet.connect(deployer).deploy();
   await _wallet.deployed();
-  await _wallet.initialize(_xen.address);
+  await _wallet.initialize(_xen.address, deployer.address);
 
   const Manager = await ethers.getContractFactory("XENWalletManager");
   const _manager = await Manager.connect(deployer).deploy(

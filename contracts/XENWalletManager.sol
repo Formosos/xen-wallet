@@ -49,7 +49,7 @@ contract XENWalletManager {
     function createWallet(uint256 _id, uint256 term) internal {
         bytes32 salt = getSalt(_id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
-        clone.initialize(XENCrypto);
+        clone.initialize(XENCrypto, msg.sender);
         clone.claimRank(term); // unsure if should be combined with initialize
 
         // TODO: Check if the following is valid in Solidity (empty dynamic array)
@@ -96,7 +96,10 @@ contract XENWalletManager {
         return wallets;
     }
 
-    function batchClaimMintReward(uint256 _startId, uint256 _endId) external {
+    // Claims rewards and sends them to the wallet owner
+    function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
+        external
+    {
         uint256 mintTokens = 0;
 
         for (uint256 id = _startId; id <= _endId; id++) {
@@ -104,6 +107,7 @@ contract XENWalletManager {
 
             XENWallet(proxy).claimMintReward();
             mintTokens += IXENCrypto(XENCrypto).balanceOf(proxy);
+            XENWallet(proxy).transferBalance();
         }
         ownToken.mint(msg.sender, mintTokens);
     }
