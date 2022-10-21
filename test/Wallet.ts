@@ -105,6 +105,20 @@ describe("Wallet", function () {
       }
     });
 
+    it("can create more wallets", async function () {
+      await manager.batchCreateWallet(1, 5, 5);
+      await manager.batchCreateWallet(6, 8, 5);
+
+      const wallets = await manager.getWallets(1, 8);
+      expect(wallets.length).to.equal(8);
+      for (let i = 0; i < wallets.length; i++) {
+        expect(wallets[i]).to.not.empty;
+        expect(wallets[i]).to.not.equal(ethers.constants.AddressZero);
+        // make sure all addresses are unique
+        expect(wallets.filter((w) => w == wallets[i]).length).to.equal(1);
+      }
+    });
+
     it("no data for deployer", async function () {
       await manager.connect(owner).batchCreateWallet(1, 5, 5);
       const mintData = await xen.userMints(owner.address);
@@ -124,6 +138,13 @@ describe("Wallet", function () {
         expect(mintData.rank).to.equal(i + 1);
       }
     });
+
+    it("reusing the IDs fails", async function () {
+      await manager.batchCreateWallet(3, 5, 5);
+      await expect(manager.batchCreateWallet(1, 5, 5)).to.be.revertedWith(
+        "ERC1167: create2 failed"
+      );
+    });
   });
 
   describe("Mint claim", function () {
@@ -134,20 +155,15 @@ describe("Wallet", function () {
       await nextDay();
     });
 
-    it("Works", async function () {
+    it("works", async function () {
       await manager.batchClaimMintReward(1, 5);
       for (let i = 0; i < wallets.length; i++) {
         const xenBalance = await xen.balanceOf(wallets[i]);
-        if (i < wallets.length - 1) {
-          expect(xenBalance).to.above(0);
-        } else {
-          // The last wallet doesn't get any rewards
-          expect(xenBalance).to.equal(0);
-        }
+        expect(xenBalance).to.above(0);
       }
     });
 
-    it("Mints equal amount of own tokens", async function () {
+    it("mints equal amount of own tokens", async function () {
       await manager.connect(owner).batchClaimMintReward(1, 5);
 
       let totalBalance = BigNumber.from(0);
