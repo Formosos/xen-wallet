@@ -31,7 +31,7 @@ describe("Wallet", function () {
 
     const Wallet = await ethers.getContractFactory("XENWallet");
     const _wallet = await Wallet.deploy();
-    await _wallet.initialize(_xen.address);
+    await _wallet.initialize(_xen.address, _owner.address);
 
     const Manager = await ethers.getContractFactory("XENWalletManager");
     const _manager = await Manager.deploy(_xen.address, _wallet.address);
@@ -156,23 +156,20 @@ describe("Wallet", function () {
     });
 
     it("works", async function () {
-      await manager.batchClaimMintReward(1, 5);
-      for (let i = 0; i < wallets.length; i++) {
-        const xenBalance = await xen.balanceOf(wallets[i]);
-        expect(xenBalance).to.above(0);
-      }
+      const xenBalanceBefore = await xen.balanceOf(owner.address);
+      await manager.connect(owner).batchClaimAndTransferMintReward(1, 5);
+      const xenBalanceAfter = await xen.balanceOf(owner.address);
+
+      expect(xenBalanceBefore).to.equal(0);
+      expect(xenBalanceAfter).to.above(0);
     });
 
     it("mints equal amount of own tokens", async function () {
-      await manager.connect(owner).batchClaimMintReward(1, 5);
+      await manager.connect(owner).batchClaimAndTransferMintReward(1, 5);
 
-      let totalBalance = BigNumber.from(0);
-      for (let i = 0; i < wallets.length; i++) {
-        const xenBalance = await xen.balanceOf(wallets[i]);
-        totalBalance = totalBalance.add(xenBalance);
-      }
+      const xenBalance = await xen.balanceOf(owner.address);
       const ownBalance = await ownToken.balanceOf(owner.address);
-      expect(totalBalance).to.equal(ownBalance);
+      expect(xenBalance).to.equal(ownBalance);
     });
   });
 });
