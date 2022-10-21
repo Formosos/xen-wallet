@@ -11,7 +11,7 @@
     "url": "git+https://github.com/innovatios/xen-wallet.git"
   },
   "keywords": [],
-  "author": "", 
+  "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/innovatios/xen-wallet/issues"
@@ -23,6 +23,7 @@
     "hardhat": "^2.12.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.7.3"
+    "@openzeppelin/contracts": "^4.7.3",
+    "dotenv": "^16.0.3"
   }
 }
