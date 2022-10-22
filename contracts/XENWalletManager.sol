@@ -6,8 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
-import "./Presto.sol";
-import "hardhat/console.sol";
+import "./YENCrypto.sol";
 
 contract XENWalletManager {
     using Clones for address;
@@ -15,7 +14,7 @@ contract XENWalletManager {
     address public immutable implementation;
     address public immutable deployer;
     address public XENCrypto;
-    PrestoCrypto public ownToken;
+    YENCrypto public ownToken;
 
     uint256 public constant SECONDS_IN_DAY = 3_600 * 24;
     uint256 public constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
@@ -30,7 +29,7 @@ contract XENWalletManager {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
         deployer = msg.sender;
-        ownToken = new PrestoCrypto(address(this));
+        ownToken = new YENCrypto(address(this));
     }
 
     function getSalt(uint256 _id) public view returns (bytes32) {
@@ -60,16 +59,8 @@ contract XENWalletManager {
         clone.initialize(XENCrypto, address(this));
         clone.claimRank(term); // unsure if should be combined with initialize
 
-        // TODO: Check if the following is valid in Solidity (empty dynamic array)
-
-        // bytes memory bytecode = bytes.concat(bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73), bytes20(address(this)), bytes15(0x5af43d82803e903d91602b57fd5bf3));
-        // address proxy;
-        // assembly {
-        //     proxy := create2(0, add(bytecode, 32), mload(bytecode), salt)
-        // }
-
-        //addressResolver[msg.sender].push(clone);
         reverseAddressResolver[address(clone)] = msg.sender;
+        addressResolver[msg.sender].push(address(clone));
     }
 
     function batchCreateWallet(
@@ -163,6 +154,7 @@ contract XENWalletManager {
             }
         }
 
+        // TODO: We can probably simplify the transfer logic for XENCrypto
         uint256 balanceAfter = xenCrypto.balanceOf(address(this));
         uint256 diff = balanceAfter - balanceBefore;
 
