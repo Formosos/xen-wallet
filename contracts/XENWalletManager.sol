@@ -49,7 +49,7 @@ contract XENWalletManager {
     function createWallet(uint256 _id, uint256 term) internal {
         bytes32 salt = getSalt(_id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
-        clone.initialize(XENCrypto, msg.sender);
+        clone.initialize(XENCrypto, address(this));
         clone.claimRank(term); // unsure if should be combined with initialize
 
         // TODO: Check if the following is valid in Solidity (empty dynamic array)
@@ -87,10 +87,20 @@ contract XENWalletManager {
 
             // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/a1948250ab8c441f6d327a65754cb20d2b1b4554/contracts/utils/Address.sol#L41
             if (proxy.code.length > 0) {
+                console.log("Found wallet %s", proxy.code.length);
                 wallets[id - _startId] = proxy;
             } else {
                 // no more wallets
-                return wallets;
+                // create new (smaller) array so that we don't return 0x0 addresses
+                address[] memory truncatedWallets = new address[](
+                    id - _startId
+                );
+
+                for (uint256 i2 = 0; i2 < id - _startId; ++i2) {
+                    truncatedWallets[i2] = wallets[i2];
+                }
+
+                return truncatedWallets;
             }
         }
         return wallets;
@@ -100,15 +110,17 @@ contract XENWalletManager {
     function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
         external
     {
-        uint256 mintTokens = 0;
+        uint256 balanceBefore = IXENCrypto(XENCrypto).balanceOf(msg.sender);
 
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = getDeterministicAddress(getSalt(id));
 
-            XENWallet(proxy).claimMintReward();
-            mintTokens += IXENCrypto(XENCrypto).balanceOf(proxy);
-            XENWallet(proxy).transferBalance();
+            XENWallet(proxy).claimAndTransferMintReward(msg.sender);
         }
-        ownToken.mint(msg.sender, mintTokens);
+        uint256 balanceAfter = IXENCrypto(XENCrypto).balanceOf(msg.sender);
+        uint256 diff = balanceAfter - balanceBefore;
+        if (diff > 0) {
+            ownToken.mint(msg.sender, diff);
+        }
     }
 }
