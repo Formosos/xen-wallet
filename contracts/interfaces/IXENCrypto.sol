@@ -24,11 +24,4 @@ abstract contract IXENCrypto is IERC20 {
         virtual;
 
     function getUserMint() external view virtual returns (MintInfo memory);
-
-    // function claimMintRewardAndStake(uint256 pct, uint256 term) external;
-
-    // function stake(uint256 amount, uint256 term) external;
-    // function withdraw() external;
-
-    // function transfer(address to, uint256 amount) external;
 }

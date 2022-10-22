@@ -5,7 +5,7 @@ import { ethers, network } from "hardhat";
 import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  PrestoCrypto,
+  YENCrypto,
   XENCrypto,
   XENWallet,
   XENWalletManager,
@@ -37,7 +37,7 @@ describe("Wallet", function () {
     const _manager = await Manager.deploy(_xen.address, _wallet.address);
 
     const OwnToken = await _manager.ownToken();
-    const _ownToken = await ethers.getContractAt("PrestoCrypto", OwnToken);
+    const _ownToken = await ethers.getContractAt("YENCrypto", OwnToken);
 
     return { _xen, _wallet, _manager, _ownToken, _deployer, _user2 };
   }
@@ -45,7 +45,7 @@ describe("Wallet", function () {
   let xen: XENCrypto,
     wallet: XENWallet,
     manager: XENWalletManager,
-    ownToken: PrestoCrypto,
+    ownToken: YENCrypto,
     deployer: SignerWithAddress,
     user2: SignerWithAddress;
 
@@ -78,7 +78,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () {});
+    beforeEach(async function () { });
 
     it("sets the right data", async function () {
       await manager.batchCreateWallet(1, 1, 5);

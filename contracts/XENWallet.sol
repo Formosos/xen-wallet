@@ -35,8 +35,6 @@ contract XENWallet is Initializable {
         require(msg.sender == manager, "No access");
 
         IXENCrypto crypto = IXENCrypto(XENCrypto);
-
-        crypto.claimMintReward();
-        crypto.transfer(target, crypto.balanceOf(address(this)));
+        crypto.claimMintRewardAndShare(target, 100);
     }
 }

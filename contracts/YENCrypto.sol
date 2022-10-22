@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-// import "./interfaces/IXENCrypto.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract PrestoCrypto is ERC20 {
+contract YENCrypto is ERC20 {
     uint256 internal constant LAUNCH_TIME = 1666254094;
 
     address public minter;
@@ -21,15 +20,4 @@ contract PrestoCrypto is ERC20 {
         require(msg.sender == minter, "No access");
         _mint(account, amount);
     }
-
-    // function claimRank(uint256 term) external {
-    // }
-
-    // function claimMintReward() external {
-    // }
-
-    // function claimMintRewardAndShare(address other, uint256 pct) external {
-    // }
-
-    // TODO: Copyright XEN functionality
 }
