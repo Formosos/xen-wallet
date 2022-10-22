@@ -83,15 +83,15 @@ contract XENWalletManager {
     }
 
     // Mostly useful for external parties
-    function getWallets(uint256 _startId, uint256 _endId)
-        external
-        view
-        returns (address[] memory)
-    {
+    function getWallets(
+        address owner,
+        uint256 _startId,
+        uint256 _endId
+    ) external view returns (address[] memory) {
         uint256 size = _endId - _startId + 1;
         address[] memory wallets = new address[](size);
         for (uint256 id = _startId; id <= _endId; id++) {
-            address proxy = getDeterministicAddress(getSalt(id));
+            address proxy = getDeterministicAddress(getWalletSalt(owner, id));
 
             // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/a1948250ab8c441f6d327a65754cb20d2b1b4554/contracts/utils/Address.sol#L41
             if (proxy.code.length > 0) {

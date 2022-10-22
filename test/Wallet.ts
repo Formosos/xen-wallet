@@ -109,7 +109,7 @@ describe("Wallet", function () {
 
     it("is possible to retrieve the wallets", async function () {
       await manager.batchCreateWallet(1, 5, 5);
-      const wallets = await manager.getWallets(1, 5);
+      const wallets = await manager.getWallets(deployer.address, 1, 5);
 
       expect(wallets.length).to.equal(5);
       for (let i = 0; i < wallets.length; i++) {
@@ -122,7 +122,7 @@ describe("Wallet", function () {
 
     it("returns only existing wallets", async function () {
       await manager.batchCreateWallet(1, 5, 5);
-      const wallets = await manager.getWallets(3, 20);
+      const wallets = await manager.getWallets(deployer.address, 3, 20);
 
       expect(wallets.length).to.equal(3);
       for (let i = 0; i < wallets.length; i++) {
@@ -137,7 +137,7 @@ describe("Wallet", function () {
       await manager.batchCreateWallet(1, 5, 5);
       await manager.batchCreateWallet(6, 8, 5);
 
-      const wallets = await manager.getWallets(1, 8);
+      const wallets = await manager.getWallets(deployer.address, 1, 8);
       expect(wallets.length).to.equal(8);
       for (let i = 0; i < wallets.length; i++) {
         expect(wallets[i]).to.not.empty;
@@ -156,7 +156,7 @@ describe("Wallet", function () {
 
     it("sets the right data in XEN", async function () {
       await manager.connect(deployer).batchCreateWallet(1, 5, 5);
-      const wallets = await manager.getWallets(1, 5);
+      const wallets = await manager.getWallets(deployer.address, 1, 5);
 
       for (let i = 0; i < wallets.length; i++) {
         const mintData = await xen.userMints(wallets[i]);
@@ -171,8 +171,8 @@ describe("Wallet", function () {
       await manager.connect(deployer).batchCreateWallet(1, 5, 5);
       await manager.connect(user2).batchCreateWallet(1, 4, 5);
 
-      const wallets1 = await manager.connect(deployer).getWallets(1, 5);
-      const wallets2 = await manager.connect(user2).getWallets(1, 5);
+      const wallets1 = await manager.getWallets(deployer.address, 1, 5);
+      const wallets2 = await manager.getWallets(user2.address, 1, 5);
 
       expect(wallets1.length).to.equal(5);
       expect(wallets2.length).to.equal(4);
@@ -196,7 +196,7 @@ describe("Wallet", function () {
 
     it("no direct access", async function () {
       await manager.batchCreateWallet(1, 1, 5);
-      const wallets = await manager.getWallets(1, 1);
+      const wallets = await manager.getWallets(deployer.address, 1, 1);
       const wallet = await ethers.getContractAt("XENWallet", wallets[0]);
 
       await expect(wallet.connect(deployer).claimRank(1)).to.be.revertedWith(
@@ -212,7 +212,7 @@ describe("Wallet", function () {
     let wallets: string[];
     beforeEach(async function () {
       await manager.connect(deployer).batchCreateWallet(1, 5, 1);
-      wallets = await manager.connect(deployer).getWallets(1, 5);
+      wallets = await manager.getWallets(deployer.address, 1, 5);
       await nextDay();
     });
 
@@ -278,7 +278,7 @@ describe("Wallet", function () {
     let wallets: string[];
     beforeEach(async function () {
       await manager.connect(user2).batchCreateWallet(1, 5, 1);
-      wallets = await manager.connect(user2).getWallets(1, 5);
+      wallets = await manager.getWallets(user2.address, 1, 5);
       await nextDay();
     });
 
