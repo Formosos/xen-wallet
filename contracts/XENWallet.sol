@@ -19,19 +19,24 @@ contract XENWallet is Initializable {
         manager = managerAddress;
     }
 
+    function getUserMint() external view returns (IXENCrypto.MintInfo memory) {
+        return IXENCrypto(XENCrypto).getUserMint();
+    }
+
     // Claim ranks
     function claimRank(uint256 _term) public {
         require(msg.sender == manager, "No access");
+
         XENCrypto.claimRank(_term);
     }
 
     // Claim mint reward
     function claimAndTransferMintReward(address target) external {
         require(msg.sender == manager, "No access");
-        IXENCrypto(XENCrypto).claimMintReward();
-        IXENCrypto(XENCrypto).transfer(
-            target,
-            IXENCrypto(XENCrypto).balanceOf(address(this))
-        );
+
+        IXENCrypto crypto = IXENCrypto(XENCrypto);
+
+        crypto.claimMintReward();
+        crypto.transfer(target, crypto.balanceOf(address(this)));
     }
 }

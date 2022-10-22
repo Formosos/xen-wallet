@@ -17,7 +17,7 @@ describe("Wallet", function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployWalletFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [_owner, _user2] = await ethers.getSigners();
+    const [_deployer, _user2] = await ethers.getSigners();
 
     const MathLib = await ethers.getContractFactory("Math");
     const _math = await MathLib.deploy();
@@ -31,7 +31,7 @@ describe("Wallet", function () {
 
     const Wallet = await ethers.getContractFactory("XENWallet");
     const _wallet = await Wallet.deploy();
-    await _wallet.initialize(_xen.address, _owner.address);
+    await _wallet.initialize(_xen.address, _deployer.address);
 
     const Manager = await ethers.getContractFactory("XENWalletManager");
     const _manager = await Manager.deploy(_xen.address, _wallet.address);
@@ -39,25 +39,25 @@ describe("Wallet", function () {
     const OwnToken = await _manager.ownToken();
     const _ownToken = await ethers.getContractAt("PrestoCrypto", OwnToken);
 
-    return { _xen, _wallet, _manager, _ownToken, _owner, _user2 };
+    return { _xen, _wallet, _manager, _ownToken, _deployer, _user2 };
   }
 
   let xen: XENCrypto,
     wallet: XENWallet,
     manager: XENWalletManager,
     ownToken: PrestoCrypto,
-    owner: SignerWithAddress,
+    deployer: SignerWithAddress,
     user2: SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _manager, _ownToken, _owner, _user2 } =
+    const { _xen, _wallet, _manager, _ownToken, _deployer, _user2 } =
       await loadFixture(deployWalletFixture);
 
     xen = _xen;
     wallet = _wallet;
     manager = _manager;
     ownToken = _ownToken;
-    owner = _owner;
+    deployer = _deployer;
     user2 = _user2;
   });
 
@@ -70,7 +70,7 @@ describe("Wallet", function () {
 
       expect(walletXen).to.equal(xen.address);
       expect(factoryXen).to.equal(xen.address);
-      expect(factoryDeployer).to.equal(owner.address);
+      expect(factoryDeployer).to.equal(deployer.address);
       expect(factoryImplementation).to.equal(wallet.address);
       expect(ownToken).to.not.empty;
     });
@@ -104,7 +104,7 @@ describe("Wallet", function () {
 
       const storedAddress = await manager.reverseAddressResolver(addressToBe);
 
-      expect(storedAddress).to.equal(owner.address);
+      expect(storedAddress).to.equal(deployer.address);
     });
 
     it("is possible to retrieve the wallets", async function () {
@@ -148,14 +148,14 @@ describe("Wallet", function () {
     });
 
     it("no data for deployer", async function () {
-      await manager.connect(owner).batchCreateWallet(1, 5, 5);
-      const mintData = await xen.userMints(owner.address);
+      await manager.connect(deployer).batchCreateWallet(1, 5, 5);
+      const mintData = await xen.userMints(deployer.address);
 
       expect(mintData.user).to.equal(ethers.constants.AddressZero);
     });
 
     it("sets the right data in XEN", async function () {
-      await manager.connect(owner).batchCreateWallet(1, 5, 5);
+      await manager.connect(deployer).batchCreateWallet(1, 5, 5);
       const wallets = await manager.getWallets(1, 5);
 
       for (let i = 0; i < wallets.length; i++) {
@@ -168,10 +168,10 @@ describe("Wallet", function () {
     });
 
     it("multiple users have their own wallets", async function () {
-      await manager.connect(owner).batchCreateWallet(1, 5, 5);
+      await manager.connect(deployer).batchCreateWallet(1, 5, 5);
       await manager.connect(user2).batchCreateWallet(1, 4, 5);
 
-      const wallets1 = await manager.connect(owner).getWallets(1, 5);
+      const wallets1 = await manager.connect(deployer).getWallets(1, 5);
       const wallets2 = await manager.connect(user2).getWallets(1, 5);
 
       expect(wallets1.length).to.equal(5);
@@ -199,11 +199,11 @@ describe("Wallet", function () {
       const wallets = await manager.getWallets(1, 1);
       const wallet = await ethers.getContractAt("XENWallet", wallets[0]);
 
-      await expect(wallet.connect(owner).claimRank(1)).to.be.revertedWith(
+      await expect(wallet.connect(deployer).claimRank(1)).to.be.revertedWith(
         "No access"
       );
       await expect(
-        wallet.connect(owner).claimAndTransferMintReward(owner.address)
+        wallet.connect(deployer).claimAndTransferMintReward(deployer.address)
       ).to.be.revertedWith("No access");
     });
   });
@@ -211,26 +211,140 @@ describe("Wallet", function () {
   describe("Mint claim", function () {
     let wallets: string[];
     beforeEach(async function () {
-      await manager.connect(owner).batchCreateWallet(1, 5, 1);
-      wallets = await manager.getWallets(1, 5);
+      await manager.connect(deployer).batchCreateWallet(1, 5, 1);
+      wallets = await manager.connect(deployer).getWallets(1, 5);
       await nextDay();
     });
 
     it("works", async function () {
-      const xenBalanceBefore = await xen.balanceOf(owner.address);
-      await manager.connect(owner).batchClaimAndTransferMintReward(1, 5);
-      const xenBalanceAfter = await xen.balanceOf(owner.address);
+      const xenBalanceBefore = await xen.balanceOf(deployer.address);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(1, 5);
+      const xenBalanceAfter = await xen.balanceOf(deployer.address);
 
       expect(xenBalanceBefore).to.equal(0);
       expect(xenBalanceAfter).to.above(0);
     });
 
-    it("mints equal amount of own tokens", async function () {
-      await manager.connect(owner).batchClaimAndTransferMintReward(1, 5);
+    it("works for multiple users", async function () {
+      await manager.connect(user2).batchCreateWallet(1, 5, 2);
+      await nextDay();
+      await nextDay();
 
-      const xenBalance = await xen.balanceOf(owner.address);
-      const ownBalance = await ownToken.balanceOf(owner.address);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(1, 5);
+      await manager.connect(user2).batchClaimAndTransferMintReward(1, 5);
+
+      const deployerBalance = await xen.balanceOf(deployer.address);
+      const otherBalance = await xen.balanceOf(user2.address);
+
+      expect(deployerBalance).to.above(0);
+      expect(otherBalance).to.above(0);
+      expect(otherBalance).to.above(deployerBalance);
+    });
+
+    it("mints equal amount of own tokens", async function () {
+      await manager.connect(deployer).batchClaimAndTransferMintReward(1, 5);
+
+      const xenBalance = await xen.balanceOf(deployer.address);
+      const ownBalance = await ownToken.balanceOf(deployer.address);
       expect(xenBalance).to.equal(ownBalance);
+    });
+
+    it("works when not all wallets in range have matured", async function () {
+      // create more wallets with longer term
+      await manager.connect(deployer).batchCreateWallet(6, 10, 3);
+      // create more wallets with short term
+      await manager.connect(deployer).batchCreateWallet(11, 12, 1);
+      await nextDay();
+      await nextDay();
+
+      await manager.connect(deployer).batchClaimAndTransferMintReward(1, 15);
+
+      const xenBalanceBefore = await xen.balanceOf(deployer.address);
+
+      // wait until the middle batch has expired also
+      await nextDay();
+      await nextDay();
+      await nextDay();
+
+      await manager.connect(deployer).batchClaimAndTransferMintReward(6, 10);
+
+      const xenBalanceAfter = await xen.balanceOf(deployer.address);
+
+      expect(xenBalanceAfter.sub(xenBalanceBefore)).to.above(0);
+    });
+  });
+
+  describe("Rescue", function () {
+    let wallets: string[];
+    beforeEach(async function () {
+      await manager.connect(user2).batchCreateWallet(1, 5, 1);
+      wallets = await manager.connect(user2).getWallets(1, 5);
+      await nextDay();
+    });
+
+    it("works", async function () {
+      await nextDay();
+      await nextDay();
+
+      await manager
+        .connect(deployer)
+        .batchClaimMintRewardRescue(user2.address, 1, 5);
+
+      const xenBalanceDeployer = await xen.balanceOf(deployer.address);
+      const ownBalanceDeployer = await ownToken.balanceOf(deployer.address);
+      const xenBalanceOwner = await xen.balanceOf(user2.address);
+      const ownBalanceOwner = await ownToken.balanceOf(user2.address);
+
+      expect(xenBalanceDeployer).to.above(0);
+      expect(ownBalanceDeployer).to.above(0);
+      expect(xenBalanceOwner).to.above(0);
+      expect(ownBalanceOwner).to.above(0);
+
+      expect(xenBalanceDeployer).to.equal(ownBalanceDeployer);
+      expect(xenBalanceOwner).to.equal(ownBalanceOwner);
+
+      expect(xenBalanceDeployer.mul(4)).to.equal(xenBalanceOwner);
+    });
+
+    it("works when not all wallets in range have matured", async function () {
+      // create more wallets with longer term
+      await manager.connect(user2).batchCreateWallet(6, 10, 3);
+      // create more wallets with short term
+      await manager.connect(user2).batchCreateWallet(11, 12, 1);
+      await nextDay();
+      await nextDay();
+      await nextDay();
+
+      await manager
+        .connect(deployer)
+        .batchClaimMintRewardRescue(user2.address, 1, 15);
+
+      const xenBalanceOwnerBefore = await xen.balanceOf(user2.address);
+      const ownBalanceOwnerBefore = await ownToken.balanceOf(user2.address);
+
+      // wait until the middle batch has expired also
+      await nextDay();
+      await nextDay();
+      await nextDay();
+
+      await manager
+        .connect(deployer)
+        .batchClaimMintRewardRescue(user2.address, 6, 10);
+
+      const xenBalanceOwnerAfter = await xen.balanceOf(user2.address);
+      const ownBalanceOwnerAfter = await ownToken.balanceOf(user2.address);
+
+      expect(xenBalanceOwnerAfter.sub(xenBalanceOwnerBefore)).to.above(0);
+      expect(ownBalanceOwnerAfter.sub(ownBalanceOwnerBefore)).to.above(0);
+    });
+
+    it("nothing is done if called prematurely", async function () {
+      await manager
+        .connect(deployer)
+        .batchClaimMintRewardRescue(user2.address, 1, 5);
+      const xenBalance = await xen.balanceOf(deployer.address);
+
+      expect(xenBalance).to.equal(0);
     });
   });
 });

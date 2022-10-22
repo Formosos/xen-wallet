@@ -10,12 +10,16 @@ import "./Presto.sol";
 import "hardhat/console.sol";
 
 contract XENWalletManager {
+    using Clones for address;
+
     address public immutable implementation;
     address public immutable deployer;
     address public XENCrypto;
     PrestoCrypto public ownToken;
 
-    using Clones for address;
+    uint256 public constant SECONDS_IN_DAY = 3_600 * 24;
+    uint256 public constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
+    uint256 public constant RESCUE_FEE = 2000; // 20%
 
     // Use address resolver to derive proxy address
     // Mint and staking information is derived through XENCrypto contract
@@ -30,7 +34,15 @@ contract XENWalletManager {
     }
 
     function getSalt(uint256 _id) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(msg.sender, _id));
+        return getWalletSalt(msg.sender, _id);
+    }
+
+    function getWalletSalt(address wallet, uint256 _id)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(wallet, _id));
     }
 
     function getDeterministicAddress(bytes32 salt)
@@ -39,10 +51,6 @@ contract XENWalletManager {
         returns (address)
     {
         return implementation.predictDeterministicAddress(salt);
-    }
-
-    function temp(bytes32 salt) external payable {
-        implementation.cloneDeterministic(salt);
     }
 
     // Create wallets
@@ -87,7 +95,6 @@ contract XENWalletManager {
 
             // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/a1948250ab8c441f6d327a65754cb20d2b1b4554/contracts/utils/Address.sol#L41
             if (proxy.code.length > 0) {
-                console.log("Found wallet %s", proxy.code.length);
                 wallets[id - _startId] = proxy;
             } else {
                 // no more wallets
@@ -115,12 +122,59 @@ contract XENWalletManager {
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = getDeterministicAddress(getSalt(id));
 
-            XENWallet(proxy).claimAndTransferMintReward(msg.sender);
+            if (proxy.code.length > 0) {
+                IXENCrypto.MintInfo memory info = XENWallet(proxy)
+                    .getUserMint();
+
+                if (info.rank > 0 && block.timestamp > info.maturityTs) {
+                    XENWallet(proxy).claimAndTransferMintReward(msg.sender);
+                }
+            }
         }
         uint256 balanceAfter = IXENCrypto(XENCrypto).balanceOf(msg.sender);
         uint256 diff = balanceAfter - balanceBefore;
         if (diff > 0) {
             ownToken.mint(msg.sender, diff);
+        }
+    }
+
+    function batchClaimMintRewardRescue(
+        address walletOwner,
+        uint256 _startId,
+        uint256 _endId
+    ) external {
+        require(msg.sender == deployer, "No access");
+
+        IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
+
+        uint256 balanceBefore = xenCrypto.balanceOf(address(this));
+
+        for (uint256 id = _startId; id <= _endId; id++) {
+            address proxy = getDeterministicAddress(
+                getWalletSalt(walletOwner, id)
+            );
+            if (proxy.code.length > 0) {
+                IXENCrypto.MintInfo memory info = XENWallet(proxy)
+                    .getUserMint();
+
+                if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
+                    XENWallet(proxy).claimAndTransferMintReward(address(this));
+                }
+            }
+        }
+
+        uint256 balanceAfter = xenCrypto.balanceOf(address(this));
+        uint256 diff = balanceAfter - balanceBefore;
+
+        if (diff > 0) {
+            // transfer XEN and own token
+            uint256 fee = (diff * RESCUE_FEE) / 10000;
+
+            ownToken.mint(walletOwner, diff - fee);
+            ownToken.mint(deployer, fee);
+
+            xenCrypto.transfer(walletOwner, diff - fee);
+            xenCrypto.transfer(deployer, fee);
         }
     }
 }
