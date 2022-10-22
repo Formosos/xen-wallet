@@ -9,29 +9,28 @@ import "./interfaces/IXENCrypto.sol";
 
 contract XENWallet is Initializable {
     IXENCrypto public XENCrypto;
-    address public owner;
+    address public manager;
 
-    function initialize(address xenAddress, address ownerAddress)
+    function initialize(address xenAddress, address managerAddress)
         public
         initializer
     {
         XENCrypto = IXENCrypto(xenAddress);
-        owner = ownerAddress;
+        manager = managerAddress;
     }
 
     // Claim ranks
     function claimRank(uint256 _term) public {
+        require(msg.sender == manager, "No access");
         XENCrypto.claimRank(_term);
     }
 
     // Claim mint reward
-    function claimMintReward() external {
+    function claimAndTransferMintReward(address target) external {
+        require(msg.sender == manager, "No access");
         IXENCrypto(XENCrypto).claimMintReward();
-    }
-
-    function transferBalance() external {
         IXENCrypto(XENCrypto).transfer(
-            owner,
+            target,
             IXENCrypto(XENCrypto).balanceOf(address(this))
         );
     }

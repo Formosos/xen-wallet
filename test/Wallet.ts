@@ -80,6 +80,21 @@ describe("Wallet", function () {
     const day = 24 * 60 * 60;
     beforeEach(async function () {});
 
+    it("sets the right data", async function () {
+      await manager.batchCreateWallet(1, 1, 5);
+
+      const walletAddress = await manager.getDeterministicAddress(
+        manager.getSalt(1)
+      );
+      const wallet = await ethers.getContractAt("XENWallet", walletAddress);
+
+      const managerAddress = await wallet.manager();
+      const xenAddress = await wallet.XENCrypto();
+
+      expect(managerAddress).to.equal(manager.address);
+      expect(xenAddress).to.equal(xen.address);
+    });
+
     it("sets the right mapping", async function () {
       const id = 1;
       const salt = await manager.getSalt(id);
@@ -97,6 +112,19 @@ describe("Wallet", function () {
       const wallets = await manager.getWallets(1, 5);
 
       expect(wallets.length).to.equal(5);
+      for (let i = 0; i < wallets.length; i++) {
+        expect(wallets[i]).to.not.empty;
+        expect(wallets[i]).to.not.equal(ethers.constants.AddressZero);
+        // make sure all addresses are unique
+        expect(wallets.filter((w) => w == wallets[i]).length).to.equal(1);
+      }
+    });
+
+    it("returns only existing wallets", async function () {
+      await manager.batchCreateWallet(1, 5, 5);
+      const wallets = await manager.getWallets(3, 20);
+
+      expect(wallets.length).to.equal(3);
       for (let i = 0; i < wallets.length; i++) {
         expect(wallets[i]).to.not.empty;
         expect(wallets[i]).to.not.equal(ethers.constants.AddressZero);
@@ -139,11 +167,44 @@ describe("Wallet", function () {
       }
     });
 
+    it("multiple users have their own wallets", async function () {
+      await manager.connect(owner).batchCreateWallet(1, 5, 5);
+      await manager.connect(user2).batchCreateWallet(1, 4, 5);
+
+      const wallets1 = await manager.connect(owner).getWallets(1, 5);
+      const wallets2 = await manager.connect(user2).getWallets(1, 5);
+
+      expect(wallets1.length).to.equal(5);
+      expect(wallets2.length).to.equal(4);
+
+      const allWallets = wallets1.concat(wallets2);
+
+      for (let i = 0; i < allWallets.length; i++) {
+        expect(allWallets[i]).to.not.empty;
+        expect(allWallets[i]).to.not.equal(ethers.constants.AddressZero);
+        // make sure all addresses are unique
+        expect(allWallets.filter((w) => w == allWallets[i]).length).to.equal(1);
+      }
+    });
+
     it("reusing the IDs fails", async function () {
       await manager.batchCreateWallet(3, 5, 5);
       await expect(manager.batchCreateWallet(1, 5, 5)).to.be.revertedWith(
         "ERC1167: create2 failed"
       );
+    });
+
+    it("no direct access", async function () {
+      await manager.batchCreateWallet(1, 1, 5);
+      const wallets = await manager.getWallets(1, 1);
+      const wallet = await ethers.getContractAt("XENWallet", wallets[0]);
+
+      await expect(wallet.connect(owner).claimRank(1)).to.be.revertedWith(
+        "No access"
+      );
+      await expect(
+        wallet.connect(owner).claimAndTransferMintReward(owner.address)
+      ).to.be.revertedWith("No access");
     });
   });
 
