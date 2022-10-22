@@ -4,17 +4,17 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 abstract contract IXENCrypto is IERC20 {
-    // TODO: Check how to use events
-    event RankClaimed(address indexed user, uint256 term, uint256 rank);
-    event MintClaimed(address indexed user, uint256 rewardAmount);
-    event Staked(address indexed user, uint256 amount, uint256 term);
-    event Withdrawn(address indexed user, uint256 amount, uint256 reward);
+    struct MintInfo {
+        address user;
+        uint256 term;
+        uint256 maturityTs;
+        uint256 rank;
+        uint256 amplifier;
+        uint256 eaaRate;
+    }
 
-    // TODO: Add other interfaces from XENCrypto contract
+    mapping(address => MintInfo) public userMints;
 
-    // TODO: Check how public functions are integrated and if we need to define parameters
-    // function getCurrentAPY() external;
-    // function getCurrentMaxTerm() external;
     function claimRank(uint256 term) external virtual;
 
     function claimMintReward() external virtual;
@@ -22,6 +22,8 @@ abstract contract IXENCrypto is IERC20 {
     function claimMintRewardAndShare(address other, uint256 pct)
         external
         virtual;
+
+    function getUserMint() external view virtual returns (MintInfo memory);
 
     // function claimMintRewardAndStake(uint256 pct, uint256 term) external;
 
