@@ -20,7 +20,7 @@ contract XENWallet is Initializable {
     }
 
     function getUserMint() external view returns (IXENCrypto.MintInfo memory) {
-        return IXENCrypto(XENCrypto).getUserMint();
+        return XENCrypto.getUserMint();
     }
 
     // Claim ranks
@@ -37,10 +37,8 @@ contract XENWallet is Initializable {
     {
         require(msg.sender == manager, "No access");
 
-        IXENCrypto crypto = IXENCrypto(XENCrypto);
-
-        uint256 balanceBefore = crypto.balanceOf(target);
-        crypto.claimMintRewardAndShare(target, 100);
-        reward = crypto.balanceOf(target) - balanceBefore;
+        uint256 balanceBefore = XENCrypto.balanceOf(target);
+        XENCrypto.claimMintRewardAndShare(target, 100);
+        reward = XENCrypto.balanceOf(target) - balanceBefore;
     }
 }
