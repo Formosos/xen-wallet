@@ -63,13 +63,10 @@ contract XENWalletManager {
         addressResolver[msg.sender].push(address(clone));
     }
 
-    function batchCreateWallet(
-        uint256 _startId,
-        uint256 _endId,
-        uint256 term
-    ) external {
-        for (uint256 id = _startId; id <= _endId; id++) {
-            createWallet(id, term);
+    function batchCreateWallet(uint256 amount, uint256 term) external {
+        uint256 existing = addressResolver[msg.sender].length;
+        for (uint256 id = 0; id < amount; id++) {
+            createWallet(id + existing, term);
         }
     }
 
