@@ -13,6 +13,7 @@ contract XENWalletManager {
 
     address public immutable implementation;
     address public immutable deployer;
+    address public immutable rescueFeeReceiver;
     address public XENCrypto;
     YENCrypto public ownToken;
 
@@ -24,10 +25,15 @@ contract XENWalletManager {
     // Mint and staking information is derived through XENCrypto contract
     mapping(address => address[]) public unmintedWallets;
 
-    constructor(address xenCrypto, address walletImplementation) {
+    constructor(
+        address xenCrypto,
+        address walletImplementation,
+        address rescueFeeAddress
+    ) {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
         deployer = msg.sender;
+        rescueFeeReceiver = rescueFeeAddress;
         ownToken = new YENCrypto(address(this));
     }
 
@@ -154,10 +160,10 @@ contract XENWalletManager {
             uint256 fee = (diff * RESCUE_FEE) / 10000;
 
             ownToken.mint(walletOwner, diff - fee);
-            ownToken.mint(deployer, fee);
+            ownToken.mint(rescueFeeReceiver, fee);
 
             xenCrypto.transfer(walletOwner, diff - fee);
-            xenCrypto.transfer(deployer, fee);
+            xenCrypto.transfer(rescueFeeReceiver, fee);
         }
     }
 }
