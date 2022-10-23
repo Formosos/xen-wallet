@@ -218,7 +218,7 @@ describe("Wallet", function () {
 
     it("works", async function () {
       const xenBalanceBefore = await xen.balanceOf(deployer.address);
-      await manager.connect(deployer).batchClaimAndTransferMintReward(1, 5);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
       const xenBalanceAfter = await xen.balanceOf(deployer.address);
 
       expect(xenBalanceBefore).to.equal(0);
@@ -242,11 +242,27 @@ describe("Wallet", function () {
     });
 
     it("mints equal amount of own tokens", async function () {
-      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
+      await manager.connect(deployer).batchCreateWallet(5, 51);
+      await timeTravel(51);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 10);
 
       const xenBalance = await xen.balanceOf(deployer.address);
       const ownBalance = await ownToken.balanceOf(deployer.address);
+
+      expect(xenBalance).to.above(0);
       expect(xenBalance).to.equal(ownBalance);
+    });
+
+    it("doesn't mint own tokens if term too short", async function () {
+      await manager.connect(deployer).batchCreateWallet(5, 50);
+      await timeTravel(50);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 10);
+
+      const xenBalance = await xen.balanceOf(deployer.address);
+      const ownBalance = await ownToken.balanceOf(deployer.address);
+
+      expect(ownBalance).to.equal(0);
+      expect(xenBalance).to.above(0);
     });
 
     it("works when not all wallets in range have matured", async function () {
@@ -266,7 +282,7 @@ describe("Wallet", function () {
       await nextDay();
       await nextDay();
 
-      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 10);
 
       const xenBalanceAfter = await xen.balanceOf(deployer.address);
 
@@ -349,8 +365,12 @@ describe("Wallet", function () {
   });
 });
 
-const nextDay = async () => {
-  const oneDay = 24 * 60 * 60;
-  await network.provider.send("evm_increaseTime", [oneDay]);
+const timeTravel = async (days: number) => {
+  const seconds = 24 * 60 * 60 * days;
+  await network.provider.send("evm_increaseTime", [seconds]);
   await network.provider.send("evm_mine");
+};
+
+const nextDay = async () => {
+  await timeTravel(1);
 };

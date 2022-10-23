@@ -31,10 +31,16 @@ contract XENWallet is Initializable {
     }
 
     // Claim mint reward
-    function claimAndTransferMintReward(address target) external {
+    function claimAndTransferMintReward(address target)
+        external
+        returns (uint256 reward)
+    {
         require(msg.sender == manager, "No access");
 
         IXENCrypto crypto = IXENCrypto(XENCrypto);
+
+        uint256 balanceBefore = crypto.balanceOf(target);
         crypto.claimMintRewardAndShare(target, 100);
+        reward = crypto.balanceOf(target) - balanceBefore;
     }
 }

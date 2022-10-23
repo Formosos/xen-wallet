@@ -22,7 +22,7 @@ contract XENWalletManager {
 
     // Use address resolver to derive proxy address
     // Mint and staking information is derived through XENCrypto contract
-    mapping(address => address[]) public addressResolver;
+    mapping(address => address[]) public unmintedWallets;
     mapping(address => address) public reverseAddressResolver;
 
     constructor(address xenCrypto, address walletImplementation) {
@@ -57,14 +57,14 @@ contract XENWalletManager {
         bytes32 salt = getSalt(_id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
         clone.initialize(XENCrypto, address(this));
-        clone.claimRank(term); // unsure if should be combined with initialize
+        clone.claimRank(term);
 
         reverseAddressResolver[address(clone)] = msg.sender;
-        addressResolver[msg.sender].push(address(clone));
+        unmintedWallets[msg.sender].push(address(clone));
     }
 
     function batchCreateWallet(uint256 amount, uint256 term) external {
-        uint256 existing = addressResolver[msg.sender].length;
+        uint256 existing = unmintedWallets[msg.sender].length;
         for (uint256 id = 0; id < amount; id++) {
             createWallet(id + existing, term);
         }
@@ -105,24 +105,35 @@ contract XENWalletManager {
     function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
         external
     {
-        uint256 balanceBefore = IXENCrypto(XENCrypto).balanceOf(msg.sender);
+        uint256 toBeMinted = 0;
 
         for (uint256 id = _startId; id <= _endId; id++) {
-            address proxy = getDeterministicAddress(getSalt(id));
+            if (unmintedWallets[msg.sender].length <= id) {
+                // No point in looking anymore if there are not that many wallets
+                break;
+            }
+            if (unmintedWallets[msg.sender][id] == address(0x0)) {
+                // If wallet has been minted already, try the next one
+                continue;
+            }
+            address proxy = unmintedWallets[msg.sender][id]; //getDeterministicAddress(getSalt(id));
 
-            if (proxy.code.length > 0) {
-                IXENCrypto.MintInfo memory info = XENWallet(proxy)
-                    .getUserMint();
+            IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
 
-                if (info.rank > 0 && block.timestamp > info.maturityTs) {
+            if (info.rank > 0 && block.timestamp > info.maturityTs) {
+                if (info.term > 50) {
+                    toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
+                        msg.sender
+                    );
+                } else {
                     XENWallet(proxy).claimAndTransferMintReward(msg.sender);
                 }
+                unmintedWallets[msg.sender][id] = address(0x0);
             }
         }
-        uint256 balanceAfter = IXENCrypto(XENCrypto).balanceOf(msg.sender);
-        uint256 diff = balanceAfter - balanceBefore;
-        if (diff > 0) {
-            ownToken.mint(msg.sender, diff);
+
+        if (toBeMinted > 0) {
+            ownToken.mint(msg.sender, toBeMinted);
         }
     }
 
