@@ -10,6 +10,7 @@ import {
   XENWallet,
   XENWalletManager,
 } from "../typechain-types";
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 
 describe("Wallet", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -244,7 +245,7 @@ describe("Wallet", function () {
     it("mints equal amount of own tokens", async function () {
       await manager.connect(deployer).batchCreateWallet(5, 51);
       await timeTravel(51);
-      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 10);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
       const xenBalance = await xen.balanceOf(deployer.address);
       const ownBalance = await ownToken.balanceOf(deployer.address);
@@ -256,13 +257,29 @@ describe("Wallet", function () {
     it("doesn't mint own tokens if term too short", async function () {
       await manager.connect(deployer).batchCreateWallet(5, 50);
       await timeTravel(50);
-      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 10);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
       const xenBalance = await xen.balanceOf(deployer.address);
       const ownBalance = await ownToken.balanceOf(deployer.address);
 
       expect(ownBalance).to.equal(0);
       expect(xenBalance).to.above(0);
+    });
+
+    it("mints own tokens correctly if only some wallets have term long enough", async function () {
+      await manager.connect(deployer).batchCreateWallet(5, 51);
+      await manager.connect(deployer).batchCreateWallet(5, 50);
+      await manager.connect(deployer).batchCreateWallet(5, 51);
+
+      await timeTravel(51);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 19);
+
+      const xenBalance = await xen.balanceOf(deployer.address);
+      const ownBalance = await ownToken.balanceOf(deployer.address);
+
+      expect(ownBalance).to.above(0);
+      expect(xenBalance).to.above(0);
+      expect(xenBalance).to.above(ownBalance);
     });
 
     it("works when not all wallets in range have matured", async function () {
@@ -273,7 +290,7 @@ describe("Wallet", function () {
       await nextDay();
       await nextDay();
 
-      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 15);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 11);
 
       const xenBalanceBefore = await xen.balanceOf(deployer.address);
 
@@ -282,11 +299,24 @@ describe("Wallet", function () {
       await nextDay();
       await nextDay();
 
-      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 10);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
       const xenBalanceAfter = await xen.balanceOf(deployer.address);
 
       expect(xenBalanceAfter.sub(xenBalanceBefore)).to.above(0);
+    });
+
+    it("fails if claiming outside range", async function () {
+      await expect(
+        manager.connect(deployer).batchClaimAndTransferMintReward(5, 5)
+      ).to.be.revertedWithPanic(PANIC_CODES.ARRAY_ACCESS_OUT_OF_BOUNDS);
+    });
+
+    it("fails if already claimed", async function () {
+      manager.connect(deployer).batchClaimAndTransferMintReward(0, 0);
+      await expect(
+        manager.connect(deployer).batchClaimAndTransferMintReward(0, 0)
+      ).to.be.reverted;
     });
   });
 

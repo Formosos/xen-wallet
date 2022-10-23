@@ -108,15 +108,7 @@ contract XENWalletManager {
         uint256 toBeMinted = 0;
 
         for (uint256 id = _startId; id <= _endId; id++) {
-            if (unmintedWallets[msg.sender].length <= id) {
-                // No point in looking anymore if there are not that many wallets
-                break;
-            }
-            if (unmintedWallets[msg.sender][id] == address(0x0)) {
-                // If wallet has been minted already, try the next one
-                continue;
-            }
-            address proxy = unmintedWallets[msg.sender][id]; //getDeterministicAddress(getSalt(id));
+            address proxy = unmintedWallets[msg.sender][id];
 
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
 
