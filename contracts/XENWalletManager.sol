@@ -81,6 +81,17 @@ contract XENWalletManager {
         return wallets;
     }
 
+    function getUserInfos(address[] calldata owners)
+        external
+        view
+        returns (IXENCrypto.MintInfo[] memory infos)
+    {
+        infos = new IXENCrypto.MintInfo[](owners.length);
+        for (uint256 i = 0; i < owners.length; ++i) {
+            infos[i] = XENWallet(owners[i]).getUserMint();
+        }
+    }
+
     // Claims rewards and sends them to the wallet owner
     function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
         external

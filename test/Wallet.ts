@@ -109,6 +109,17 @@ describe("Wallet", function () {
       }
     });
 
+    it("is possible to retrieve the wallet infos", async function () {
+      await manager.batchCreateWallets(5, 5);
+      const wallets = await manager.getWallets(deployer.address, 0, 4);
+      const infos = await manager.getUserInfos(wallets);
+
+      expect(infos.length).to.equal(5);
+      for (let i = 0; i < infos.length; i++) {
+        expect(infos[i].rank).to.above(0);
+      }
+    });
+
     it("fails when querying for non-existing wallets", async function () {
       await manager.batchCreateWallets(5, 5);
       await expect(
@@ -170,13 +181,6 @@ describe("Wallet", function () {
       }
     });
 
-    /* it("reusing the IDs fails", async function () {
-      await manager.batchCreateWallets(3, 5, 5);
-      await expect(manager.batchCreateWallets(1, 5, 5)).to.be.revertedWith(
-        "ERC1167: create2 failed"
-      );
-    }); */
-
     it("no direct access", async function () {
       await manager.batchCreateWallets(1, 5);
       const wallets = await manager.getWallets(deployer.address, 0, 0);
@@ -191,7 +195,7 @@ describe("Wallet", function () {
     });
   });
 
-  xdescribe("Mint claim", function () {
+  describe("Mint claim", function () {
     let wallets: string[];
     beforeEach(async function () {
       await manager.connect(deployer).batchCreateWallets(5, 1);
