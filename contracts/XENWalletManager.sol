@@ -18,6 +18,7 @@ contract XENWalletManager {
     YENCrypto public ownToken;
 
     uint256 public constant SECONDS_IN_DAY = 3_600 * 24;
+    uint256 public constant MIN_TOKEN_MINT_TERM = 50;
     uint256 public constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
     uint256 public constant RESCUE_FEE = 2000; // 20%
 
@@ -110,7 +111,7 @@ contract XENWalletManager {
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
 
             if (info.rank > 0 && block.timestamp > info.maturityTs) {
-                if (info.term > 50) {
+                if (info.term > MIN_TOKEN_MINT_TERM) {
                     toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
                         msg.sender
                     );
@@ -138,17 +139,9 @@ contract XENWalletManager {
         uint256 balanceBefore = xenCrypto.balanceOf(address(this));
 
         for (uint256 id = _startId; id <= _endId; id++) {
-            address proxy = getDeterministicAddress(
-                getWalletSalt(walletOwner, id)
-            );
-            if (proxy.code.length > 0) {
-                IXENCrypto.MintInfo memory info = XENWallet(proxy)
-                    .getUserMint();
+            address proxy = unmintedWallets[walletOwner][id];
 
-                if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
-                    XENWallet(proxy).claimAndTransferMintReward(address(this));
-                }
-            }
+            XENWallet(proxy).claimAndTransferMintReward(address(this));
         }
 
         // TODO: We can probably simplify the transfer logic for XENCrypto

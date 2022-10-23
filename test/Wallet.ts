@@ -326,7 +326,7 @@ describe("Wallet", function () {
 
       await manager
         .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 1, 5);
+        .batchClaimMintRewardRescue(user2.address, 0, 4);
 
       const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
       const ownBalanceRescuer = await ownToken.balanceOf(rescuer.address);
@@ -344,45 +344,13 @@ describe("Wallet", function () {
       expect(xenBalanceRescuer.mul(4)).to.equal(xenBalanceOwner);
     });
 
-    it("works when not all wallets in range have matured", async function () {
-      // create more wallets with longer term
+    it("fails if called prematurely", async function () {
       await manager.connect(user2).batchCreateWallets(5, 3);
-      // create more wallets with short term
-      await manager.connect(user2).batchCreateWallets(2, 1);
-      await nextDay();
-      await nextDay();
-      await nextDay();
-
-      await manager
-        .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 0, 14);
-
-      const xenBalanceOwnerBefore = await xen.balanceOf(user2.address);
-      const ownBalanceOwnerBefore = await ownToken.balanceOf(user2.address);
-
-      // wait until the middle batch has expired also
-      await nextDay();
-      await nextDay();
-      await nextDay();
-
-      await manager
-        .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 5, 9);
-
-      const xenBalanceOwnerAfter = await xen.balanceOf(user2.address);
-      const ownBalanceOwnerAfter = await ownToken.balanceOf(user2.address);
-
-      expect(xenBalanceOwnerAfter.sub(xenBalanceOwnerBefore)).to.above(0);
-      expect(ownBalanceOwnerAfter.sub(ownBalanceOwnerBefore)).to.above(0);
-    });
-
-    it("nothing is done if called prematurely", async function () {
-      await manager
-        .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 1, 5);
-      const xenBalance = await xen.balanceOf(rescuer.address);
-
-      expect(xenBalance).to.equal(0);
+      await expect(
+        manager
+          .connect(deployer)
+          .batchClaimMintRewardRescue(user2.address, 5, 5)
+      ).to.be.revertedWith("CRank: Mint maturity not reached");
     });
   });
 });
