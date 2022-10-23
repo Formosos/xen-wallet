@@ -21,6 +21,7 @@ async function main() {
   const accounts = await hre.ethers.getSigners();
 
   const deployer = accounts[0];
+  const rescuer = accounts[0]; // TODO
 
   const MathLib = await ethers.getContractFactory("Math");
   const _math = await MathLib.connect(deployer).deploy();
@@ -41,7 +42,8 @@ async function main() {
   const Manager = await ethers.getContractFactory("XENWalletManager");
   const _manager = await Manager.connect(deployer).deploy(
     _xen.address,
-    _wallet.address
+    _wallet.address,
+    rescuer.address
   );
   await _manager.deployed();
 
