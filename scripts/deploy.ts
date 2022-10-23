@@ -1,5 +1,6 @@
 import { ethers, network } from "hardhat";
 import hre from "hardhat";
+import * as fs from "fs";
 
 const addressFile = "contract_addresses.md";
 
@@ -57,13 +58,39 @@ async function main() {
     await verify(_math.address, []);
     await verify(_xen.address, []);
     await verify(_wallet.address, []);
-    await verify(_manager.address, [_xen.address, _wallet.address]);
+    await verify(_manager.address, [
+      _xen.address,
+      _wallet.address,
+      rescuer.address,
+    ]);
     await verify(_ownToken, [_manager.address]);
   }
 
+  if (fs.existsSync(addressFile)) {
+    fs.rmSync(addressFile);
+  }
+
+  fs.appendFileSync(
+    addressFile,
+    "This file contains the latest test deployment addresses in the Goerli network<br/>"
+  );
+
+  const writeAddr = (addr: string, name: string) => {
+    fs.appendFileSync(
+      addressFile,
+      `${name}: [https://goerli.etherscan.io/address/${addr}](https://goerli.etherscan.io/address/${addr})<br/>`
+    );
+  };
+
+  writeAddr(_manager.address, "Wallet manager");
+  writeAddr(_xen.address, "XENCrypto");
+  writeAddr(_wallet.address, "Initial wallet");
+  writeAddr(_ownToken, "YEN token");
+  writeAddr(_math.address, "Math library");
+
   console.log("Deployments done");
   console.log(`XENCrypto: ${_xen.address}, Initial wallet: ${_wallet.address}, 
-  Wallet manager: ${_manager.address}, Own token: ${_ownToken}, Math library: ${_math.address}`);
+  Wallet manager: ${_manager.address}, YEN token: ${_ownToken}, Math library: ${_math.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
