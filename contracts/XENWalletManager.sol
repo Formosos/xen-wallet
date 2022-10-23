@@ -141,7 +141,11 @@ contract XENWalletManager {
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = unmintedWallets[walletOwner][id];
 
-            XENWallet(proxy).claimAndTransferMintReward(address(this));
+            IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
+
+            if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
+                XENWallet(proxy).claimAndTransferMintReward(address(this));
+            }
         }
 
         // TODO: We can probably simplify the transfer logic for XENCrypto

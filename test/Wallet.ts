@@ -85,7 +85,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () {});
+    beforeEach(async function () { });
 
     it("sets the right data", async function () {
       await manager.batchCreateWallets(1, 5);
@@ -243,7 +243,7 @@ describe("Wallet", function () {
       const ownBalance = await ownToken.balanceOf(deployer.address);
 
       expect(xenBalance).to.above(0);
-      expect(xenBalance).to.equal(ownBalance);
+      expect(xenBalance).to.above(ownBalance);
     });
 
     it("doesn't mint own tokens if term too short", async function () {
@@ -315,8 +315,8 @@ describe("Wallet", function () {
   describe("Rescue", function () {
     let wallets: string[];
     beforeEach(async function () {
-      await manager.connect(user2).batchCreateWallets(5, 1);
-      wallets = await manager.getWallets(user2.address, 0, 4);
+      await manager.connect(user2).batchCreateWallets(20, 1);
+      wallets = await manager.getWallets(user2.address, 0, 19);
       await nextDay();
     });
 
@@ -326,7 +326,7 @@ describe("Wallet", function () {
 
       await manager
         .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 0, 4);
+        .batchClaimMintRewardRescue(user2.address, 0, 19);
 
       const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
       const ownBalanceRescuer = await ownToken.balanceOf(rescuer.address);
@@ -338,20 +338,20 @@ describe("Wallet", function () {
       expect(xenBalanceOwner).to.above(0);
       expect(ownBalanceOwner).to.above(0);
 
-      expect(xenBalanceRescuer).to.equal(ownBalanceRescuer);
-      expect(xenBalanceOwner).to.equal(ownBalanceOwner);
+      expect(xenBalanceRescuer).to.below(ownBalanceRescuer);
+      expect(xenBalanceOwner).to.below(ownBalanceOwner);
 
       expect(xenBalanceRescuer.mul(4)).to.equal(xenBalanceOwner);
     });
 
-    it("fails if called prematurely", async function () {
-      await manager.connect(user2).batchCreateWallets(5, 3);
-      await expect(
-        manager
-          .connect(deployer)
-          .batchClaimMintRewardRescue(user2.address, 5, 5)
-      ).to.be.revertedWith("CRank: Mint maturity not reached");
-    });
+    // it("fails if called prematurely", async function () {
+    //   await manager.connect(user2).batchCreateWallets(5, 3);
+    //   await expect(
+    //     manager
+    //       .connect(deployer)
+    //       .batchClaimMintRewardRescue(user2.address, 5, 5)
+    //   ).to.be.revertedWith("CRank: Mint maturity not reached");
+    // });
   });
 });
 
