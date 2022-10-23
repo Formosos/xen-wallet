@@ -23,7 +23,6 @@ contract XENWalletManager {
     // Use address resolver to derive proxy address
     // Mint and staking information is derived through XENCrypto contract
     mapping(address => address[]) public unmintedWallets;
-    mapping(address => address) public reverseAddressResolver;
 
     constructor(address xenCrypto, address walletImplementation) {
         XENCrypto = xenCrypto;
@@ -59,18 +58,16 @@ contract XENWalletManager {
         clone.initialize(XENCrypto, address(this));
         clone.claimRank(term);
 
-        reverseAddressResolver[address(clone)] = msg.sender;
         unmintedWallets[msg.sender].push(address(clone));
     }
 
-    function batchCreateWallet(uint256 amount, uint256 term) external {
+    function batchCreateWallets(uint256 amount, uint256 term) external {
         uint256 existing = unmintedWallets[msg.sender].length;
         for (uint256 id = 0; id < amount; id++) {
             createWallet(id + existing, term);
         }
     }
 
-    // Mostly useful for external parties
     function getWallets(
         address owner,
         uint256 _startId,
@@ -79,24 +76,7 @@ contract XENWalletManager {
         uint256 size = _endId - _startId + 1;
         address[] memory wallets = new address[](size);
         for (uint256 id = _startId; id <= _endId; id++) {
-            address proxy = getDeterministicAddress(getWalletSalt(owner, id));
-
-            // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/a1948250ab8c441f6d327a65754cb20d2b1b4554/contracts/utils/Address.sol#L41
-            if (proxy.code.length > 0) {
-                wallets[id - _startId] = proxy;
-            } else {
-                // no more wallets
-                // create new (smaller) array so that we don't return 0x0 addresses
-                address[] memory truncatedWallets = new address[](
-                    id - _startId
-                );
-
-                for (uint256 i2 = 0; i2 < id - _startId; ++i2) {
-                    truncatedWallets[i2] = wallets[i2];
-                }
-
-                return truncatedWallets;
-            }
+            wallets[id - _startId] = unmintedWallets[owner][id];
         }
         return wallets;
     }
