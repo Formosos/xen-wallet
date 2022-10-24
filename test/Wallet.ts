@@ -85,7 +85,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () { });
+    beforeEach(async function () {});
 
     it("sets the right data", async function () {
       await manager.batchCreateWallets(1, 5);
@@ -274,7 +274,7 @@ describe("Wallet", function () {
       expect(xenBalance).to.above(ownBalance);
     });
 
-    it("works when not all wallets in range have matured", async function () {
+    it("fails when not all wallets in range have matured", async function () {
       // create more wallets with longer term
       await manager.connect(deployer).batchCreateWallets(5, 3);
       // create more wallets with short term
@@ -282,20 +282,9 @@ describe("Wallet", function () {
       await nextDay();
       await nextDay();
 
-      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 11);
-
-      const xenBalanceBefore = await xen.balanceOf(deployer.address);
-
-      // wait until the middle batch has expired also
-      await nextDay();
-      await nextDay();
-      await nextDay();
-
-      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
-
-      const xenBalanceAfter = await xen.balanceOf(deployer.address);
-
-      expect(xenBalanceAfter.sub(xenBalanceBefore)).to.above(0);
+      await expect(
+        manager.connect(deployer).batchClaimAndTransferMintReward(0, 11)
+      ).to.be.revertedWith("CRank: Mint maturity not reached");
     });
 
     it("fails if claiming outside range", async function () {
