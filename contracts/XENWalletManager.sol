@@ -39,15 +39,7 @@ contract XENWalletManager {
     }
 
     function getSalt(uint256 _id) public view returns (bytes32) {
-        return getWalletSalt(msg.sender, _id);
-    }
-
-    function getWalletSalt(address wallet, uint256 _id)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encodePacked(wallet, _id));
+        return keccak256(abi.encodePacked(msg.sender, _id));
     }
 
     function getDeterministicAddress(bytes32 salt)
@@ -62,6 +54,7 @@ contract XENWalletManager {
     function createWallet(uint256 _id, uint256 term) internal {
         bytes32 salt = getSalt(_id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
+
         clone.initialize(XENCrypto, address(this));
         clone.claimRank(term);
 
@@ -110,16 +103,14 @@ contract XENWalletManager {
 
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
 
-            if (info.rank > 0 && block.timestamp > info.maturityTs) {
-                if (info.term > MIN_TOKEN_MINT_TERM) {
-                    toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
-                        msg.sender
-                    );
-                } else {
-                    XENWallet(proxy).claimAndTransferMintReward(msg.sender);
-                }
-                unmintedWallets[msg.sender][id] = address(0x0);
+            if (info.term > MIN_TOKEN_MINT_TERM) {
+                toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
+                    msg.sender
+                );
+            } else {
+                XENWallet(proxy).claimAndTransferMintReward(msg.sender);
             }
+            unmintedWallets[msg.sender][id] = address(0x0);
         }
 
         if (toBeMinted > 0) {

@@ -64,29 +64,29 @@ async function main() {
       rescuer.address,
     ]);
     await verify(_ownToken, [_manager.address]);
-  }
 
-  if (fs.existsSync(addressFile)) {
-    fs.rmSync(addressFile);
-  }
+    if (fs.existsSync(addressFile)) {
+      fs.rmSync(addressFile);
+    }
 
-  fs.appendFileSync(
-    addressFile,
-    "This file contains the latest test deployment addresses in the Goerli network<br/>"
-  );
-
-  const writeAddr = (addr: string, name: string) => {
     fs.appendFileSync(
       addressFile,
-      `${name}: [https://goerli.etherscan.io/address/${addr}](https://goerli.etherscan.io/address/${addr})<br/>`
+      "This file contains the latest test deployment addresses in the Goerli network<br/>"
     );
-  };
 
-  writeAddr(_manager.address, "Wallet manager");
-  writeAddr(_xen.address, "XENCrypto");
-  writeAddr(_wallet.address, "Initial wallet");
-  writeAddr(_ownToken, "YEN token");
-  writeAddr(_math.address, "Math library");
+    const writeAddr = (addr: string, name: string) => {
+      fs.appendFileSync(
+        addressFile,
+        `${name}: [https://goerli.etherscan.io/address/${addr}](https://goerli.etherscan.io/address/${addr})<br/>`
+      );
+    };
+
+    writeAddr(_manager.address, "Wallet manager");
+    writeAddr(_xen.address, "XENCrypto");
+    writeAddr(_wallet.address, "Initial wallet");
+    writeAddr(_ownToken, "YEN token");
+    writeAddr(_math.address, "Math library");
+  }
 
   console.log("Deployments done");
   console.log(`XENCrypto: ${_xen.address}, Initial wallet: ${_wallet.address}, 
