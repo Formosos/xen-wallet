@@ -3,16 +3,16 @@ pragma solidity ^0.8.9;
 
 // import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
 
-contract XENWalletManager {
+contract XENWalletManager is Ownable {
     using Clones for address;
 
     address public immutable implementation;
-    address public immutable deployer;
     address public immutable rescueFeeReceiver;
     address public XENCrypto;
     YENCrypto public ownToken;
@@ -33,7 +33,6 @@ contract XENWalletManager {
     ) {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
-        deployer = msg.sender;
         rescueFeeReceiver = rescueFeeAddress;
         ownToken = new YENCrypto(address(this));
     }
@@ -119,7 +118,7 @@ contract XENWalletManager {
         uint256 _startId,
         uint256 _endId
     ) external {
-        require(msg.sender == deployer, "No access");
+        require(msg.sender == owner(), "No access");
 
         IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
 
