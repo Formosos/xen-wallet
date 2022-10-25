@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
+import "hardhat/console.sol";
 
 contract XENWalletManager is Ownable {
     using Clones for address;
@@ -20,7 +21,7 @@ contract XENWalletManager is Ownable {
     uint256 public constant SECONDS_IN_DAY = 3_600 * 24;
     uint256 public constant MIN_TOKEN_MINT_TERM = 50;
     uint256 public constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
-    uint256 public constant RESCUE_FEE = 2000; // 20%
+    uint256 public constant RESCUE_FEE = 4700; // 47%
 
     // Use address resolver to derive proxy address
     // Mint and staking information is derived through XENCrypto contract
@@ -121,8 +122,7 @@ contract XENWalletManager is Ownable {
         require(msg.sender == owner(), "No access");
 
         IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
-
-        uint256 balanceBefore = xenCrypto.balanceOf(address(this));
+        uint256 rescued = 0;
 
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = unmintedWallets[walletOwner][id];
@@ -130,22 +130,22 @@ contract XENWalletManager is Ownable {
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
 
             if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
-                XENWallet(proxy).claimAndTransferMintReward(address(this));
+                rescued += XENWallet(proxy).claimAndTransferMintReward(
+                    address(this)
+                );
+                unmintedWallets[walletOwner][id] = address(0x0);
             }
         }
 
-        // TODO: We can probably simplify the transfer logic for XENCrypto
-        uint256 balanceAfter = xenCrypto.balanceOf(address(this));
-        uint256 diff = balanceAfter - balanceBefore;
-
-        if (diff > 0) {
+        if (rescued > 0) {
             // transfer XEN and own token
-            uint256 fee = (diff * RESCUE_FEE) / 10000;
 
-            ownToken.mint(walletOwner, diff - fee);
+            uint256 fee = (rescued * RESCUE_FEE) / 10000;
+
+            ownToken.mint(walletOwner, rescued - fee);
             ownToken.mint(rescueFeeReceiver, fee);
 
-            xenCrypto.transfer(walletOwner, diff - fee);
+            xenCrypto.transfer(walletOwner, rescued - fee);
             xenCrypto.transfer(rescueFeeReceiver, fee);
         }
     }

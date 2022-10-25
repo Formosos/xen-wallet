@@ -68,11 +68,11 @@ describe("Wallet", function () {
     user2 = _user2;
   });
 
-  describe("Deployment", function () {
+  xdescribe("Deployment", function () {
     it("Should set the right values", async function () {
       const walletXen = await wallet.XENCrypto();
       const factoryXen = await manager.XENCrypto();
-      const factoryDeployer = await manager.deployer();
+      const factoryDeployer = await manager.owner();
       const factoryImplementation = await manager.implementation();
 
       expect(walletXen).to.equal(xen.address);
@@ -83,7 +83,7 @@ describe("Wallet", function () {
     });
   });
 
-  describe("Wallet creation", function () {
+  xdescribe("Wallet creation", function () {
     const day = 24 * 60 * 60;
     beforeEach(async function () {});
 
@@ -210,7 +210,7 @@ describe("Wallet", function () {
     });
   });
 
-  describe("Mint claim", function () {
+  xdescribe("Mint claim", function () {
     let wallets: string[];
     beforeEach(async function () {
       await manager.connect(deployer).batchCreateWallets(5, 100);
@@ -296,12 +296,12 @@ describe("Wallet", function () {
     });
   });
 
-  xdescribe("Rescue", function () {
+  describe("Rescue", function () {
     let wallets: string[];
     beforeEach(async function () {
-      await manager.connect(user2).batchCreateWallets(20, 1);
-      wallets = await manager.getWallets(user2.address, 0, 19);
-      await nextDay();
+      await manager.connect(user2).batchCreateWallets(2, 50);
+      wallets = await manager.getWallets(user2.address, 0, 1);
+      await timeTravel(50);
     });
 
     it("works", async function () {
@@ -310,7 +310,7 @@ describe("Wallet", function () {
 
       await manager
         .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 0, 19);
+        .batchClaimMintRewardRescue(user2.address, 0, 1);
 
       const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
       const ownBalanceRescuer = await ownToken.balanceOf(rescuer.address);
@@ -322,20 +322,50 @@ describe("Wallet", function () {
       expect(xenBalanceOwner).to.above(0);
       expect(ownBalanceOwner).to.above(0);
 
-      expect(xenBalanceRescuer).to.below(ownBalanceRescuer);
-      expect(xenBalanceOwner).to.below(ownBalanceOwner);
+      expect(xenBalanceRescuer).to.equal(ownBalanceRescuer);
+      expect(xenBalanceOwner).to.equal(ownBalanceOwner);
 
-      expect(xenBalanceRescuer.mul(4)).to.equal(xenBalanceOwner);
+      expect(xenBalanceRescuer).to.below(xenBalanceOwner);
+      expect(xenBalanceRescuer.mul(2)).to.above(xenBalanceOwner);
     });
 
-    // it("fails if called prematurely", async function () {
-    //   await manager.connect(user2).batchCreateWallets(5, 3);
-    //   await expect(
-    //     manager
-    //       .connect(deployer)
-    //       .batchClaimMintRewardRescue(user2.address, 5, 5)
-    //   ).to.be.revertedWith("CRank: Mint maturity not reached");
-    // });
+    it("nothing rescued if not far ahead enough in maturity", async function () {
+      await nextDay();
+
+      await manager
+        .connect(deployer)
+        .batchClaimMintRewardRescue(user2.address, 0, 1);
+
+      const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
+      const ownBalanceRescuer = await ownToken.balanceOf(rescuer.address);
+      const xenBalanceOwner = await xen.balanceOf(user2.address);
+      const ownBalanceOwner = await ownToken.balanceOf(user2.address);
+
+      expect(xenBalanceRescuer).to.equal(0);
+      expect(ownBalanceRescuer).to.equal(0);
+      expect(xenBalanceOwner).to.equal(0);
+      expect(ownBalanceOwner).to.equal(0);
+    });
+
+    it("rescue zeroes wallets", async function () {
+      await nextDay();
+      await nextDay();
+
+      await manager
+        .connect(deployer)
+        .batchClaimMintRewardRescue(user2.address, 0, 1);
+
+      wallets = await manager.getWallets(user2.address, 0, 1);
+
+      expect(wallets[0]).to.equal(ethers.constants.AddressZero);
+      expect(wallets[1]).to.equal(ethers.constants.AddressZero);
+    });
+
+    it("fails if called by non-owner", async function () {
+      await expect(
+        manager.connect(user2).batchClaimMintRewardRescue(user2.address, 5, 5)
+      ).to.be.revertedWith("No access");
+    });
   });
 });
 
