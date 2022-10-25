@@ -41,6 +41,6 @@ describe("Gas costs", function () {
 
     const start = 1;
 
-    await _manager.batchCreateWallets(walletsToCreate, 5);
+    await _manager.batchCreateWallets(walletsToCreate, 50);
   });
 });
