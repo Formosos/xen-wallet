@@ -62,6 +62,7 @@ contract XENWalletManager {
     }
 
     function batchCreateWallets(uint256 amount, uint256 term) external {
+        require(term >= 50, "Too short term");
         uint256 existing = unmintedWallets[msg.sender].length;
         for (uint256 id = 0; id < amount; id++) {
             createWallet(id + existing, term);
@@ -101,15 +102,10 @@ contract XENWalletManager {
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = unmintedWallets[msg.sender][id];
 
-            IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
+            toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
+                msg.sender
+            );
 
-            if (info.term > MIN_TOKEN_MINT_TERM) {
-                toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
-                    msg.sender
-                );
-            } else {
-                XENWallet(proxy).claimAndTransferMintReward(msg.sender);
-            }
             unmintedWallets[msg.sender][id] = address(0x0);
         }
 
