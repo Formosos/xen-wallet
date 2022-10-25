@@ -247,27 +247,32 @@ describe("Wallet", function () {
       await timeTravel(51);
       await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
-      const xenBalance = await xen.balanceOf(deployer.address);
-      const ownBalance = await ownToken.balanceOf(deployer.address);
+      const xenBalanceOwner = await xen.balanceOf(deployer.address);
+      const ownBalanceOwner = await ownToken.balanceOf(deployer.address);
+      const xenBalanceFeeReceiver = await xen.balanceOf(rescuer.address);
+      const ownBalanceFeeReceiver = await ownToken.balanceOf(rescuer.address);
 
-      expect(xenBalance).to.above(0);
-      expect(xenBalance).to.above(ownBalance);
+      expect(xenBalanceOwner).to.above(0);
+      expect(ownBalanceOwner).to.above(0);
+      expect(xenBalanceFeeReceiver).to.equal(0);
+      expect(ownBalanceFeeReceiver).to.above(0);
+
+      expect(ownBalanceOwner.add(ownBalanceFeeReceiver)).to.equal(
+        xenBalanceOwner
+      );
+      expect(ownBalanceFeeReceiver.mul(19)).to.equal(ownBalanceOwner);
     });
 
-    it("mints own tokens correctly if only some wallets have term long enough", async function () {
-      await manager.connect(deployer).batchCreateWallets(5, 51);
-      await manager.connect(deployer).batchCreateWallets(5, 50);
-      await manager.connect(deployer).batchCreateWallets(5, 51);
+    it("zeroes wallets", async function () {
+      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
 
-      await timeTravel(51);
-      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 19);
+      wallets = await manager.getWallets(deployer.address, 0, 4);
 
-      const xenBalance = await xen.balanceOf(deployer.address);
-      const ownBalance = await ownToken.balanceOf(deployer.address);
-
-      expect(ownBalance).to.above(0);
-      expect(xenBalance).to.above(0);
-      expect(xenBalance).to.above(ownBalance);
+      expect(wallets[0]).to.equal(ethers.constants.AddressZero);
+      expect(wallets[1]).to.equal(ethers.constants.AddressZero);
+      expect(wallets[2]).to.equal(ethers.constants.AddressZero);
+      expect(wallets[3]).to.equal(ethers.constants.AddressZero);
+      expect(wallets[4]).to.equal(ethers.constants.AddressZero);
     });
 
     it("fails when not all wallets in range have matured", async function () {
@@ -322,9 +327,9 @@ describe("Wallet", function () {
       expect(xenBalanceOwner).to.above(0);
       expect(ownBalanceOwner).to.above(0);
 
-      expect(xenBalanceRescuer).to.equal(ownBalanceRescuer);
-      expect(xenBalanceOwner).to.equal(ownBalanceOwner);
-
+      expect(xenBalanceRescuer).to.below(ownBalanceRescuer);
+      expect(xenBalanceOwner).to.above(ownBalanceOwner);
+      expect(ownBalanceRescuer).to.above(ownBalanceOwner);
       expect(xenBalanceRescuer).to.below(xenBalanceOwner);
       expect(xenBalanceRescuer.mul(2)).to.above(xenBalanceOwner);
     });
