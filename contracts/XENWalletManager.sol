@@ -14,7 +14,7 @@ contract XENWalletManager is Ownable {
     using Clones for address;
 
     address public immutable implementation;
-    address public immutable rescueFeeReceiver;
+    address public immutable feeReceiver;
     address public XENCrypto;
     YENCrypto public ownToken;
 
@@ -22,6 +22,7 @@ contract XENWalletManager is Ownable {
     uint256 public constant MIN_TOKEN_MINT_TERM = 50;
     uint256 public constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
     uint256 public constant RESCUE_FEE = 4700; // 47%
+    uint256 public constant MINT_FEE = 500; // 5%
 
     // Use address resolver to derive proxy address
     // Mint and staking information is derived through XENCrypto contract
@@ -30,11 +31,11 @@ contract XENWalletManager is Ownable {
     constructor(
         address xenCrypto,
         address walletImplementation,
-        address rescueFeeAddress
+        address feeAddress
     ) {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
-        rescueFeeReceiver = rescueFeeAddress;
+        feeReceiver = feeAddress;
         ownToken = new YENCrypto(address(this));
     }
 
@@ -97,20 +98,20 @@ contract XENWalletManager is Ownable {
     function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
         external
     {
-        uint256 toBeMinted = 0;
+        uint256 claimed = 0;
 
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = unmintedWallets[msg.sender][id];
 
-            toBeMinted += XENWallet(proxy).claimAndTransferMintReward(
-                msg.sender
-            );
+            claimed += XENWallet(proxy).claimAndTransferMintReward(msg.sender);
 
             unmintedWallets[msg.sender][id] = address(0x0);
         }
 
-        if (toBeMinted > 0) {
-            ownToken.mint(msg.sender, toBeMinted);
+        if (claimed > 0) {
+            uint256 fee = (claimed * MINT_FEE) / 10000;
+            ownToken.mint(msg.sender, claimed - fee);
+            ownToken.mint(feeReceiver, fee);
         }
     }
 
@@ -140,13 +141,14 @@ contract XENWalletManager is Ownable {
         if (rescued > 0) {
             // transfer XEN and own token
 
-            uint256 fee = (rescued * RESCUE_FEE) / 10000;
+            uint256 xenFee = (rescued * RESCUE_FEE) / 10000;
+            uint256 mintFee = (rescued * (RESCUE_FEE + MINT_FEE)) / 10000;
 
-            ownToken.mint(walletOwner, rescued - fee);
-            ownToken.mint(rescueFeeReceiver, fee);
+            ownToken.mint(walletOwner, rescued - mintFee);
+            ownToken.mint(feeReceiver, mintFee);
 
-            xenCrypto.transfer(walletOwner, rescued - fee);
-            xenCrypto.transfer(rescueFeeReceiver, fee);
+            xenCrypto.transfer(walletOwner, rescued - xenFee);
+            xenCrypto.transfer(feeReceiver, xenFee);
         }
     }
 }
