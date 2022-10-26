@@ -9,6 +9,7 @@ import {
   XENCrypto,
   XENWallet,
   XENWalletManager,
+  MockManager,
 } from "../typechain-types";
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 
@@ -34,7 +35,7 @@ describe("Wallet", function () {
     const _wallet = await Wallet.deploy();
     await _wallet.initialize(_xen.address, _deployer.address);
 
-    const Manager = await ethers.getContractFactory("XENWalletManager");
+    const Manager = await ethers.getContractFactory("MockManager");
     const _manager = await Manager.deploy(
       _xen.address,
       _wallet.address,
@@ -49,7 +50,7 @@ describe("Wallet", function () {
 
   let xen: XENCrypto,
     wallet: XENWallet,
-    manager: XENWalletManager,
+    manager: MockManager,
     ownToken: YENCrypto,
     deployer: SignerWithAddress,
     rescuer: SignerWithAddress,
@@ -68,12 +69,12 @@ describe("Wallet", function () {
     user2 = _user2;
   });
 
-  xdescribe("Deployment", function () {
+  describe("Deployment", function () {
     it("Should set the right values", async function () {
       const walletXen = await wallet.XENCrypto();
       const factoryXen = await manager.XENCrypto();
       const factoryDeployer = await manager.owner();
-      const factoryImplementation = await manager.implementation();
+      const factoryImplementation = await manager.getImplementation();
 
       expect(walletXen).to.equal(xen.address);
       expect(factoryXen).to.equal(xen.address);
@@ -83,7 +84,7 @@ describe("Wallet", function () {
     });
   });
 
-  xdescribe("Wallet creation", function () {
+  describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
     beforeEach(async function () {});
 
@@ -210,7 +211,7 @@ describe("Wallet", function () {
     });
   });
 
-  xdescribe("Mint claim", function () {
+  describe("Mint claim", function () {
     let wallets: string[];
     beforeEach(async function () {
       await manager.connect(deployer).batchCreateWallets(5, 100);
@@ -257,10 +258,10 @@ describe("Wallet", function () {
       expect(xenBalanceFeeReceiver).to.equal(0);
       expect(ownBalanceFeeReceiver).to.above(0);
 
-      expect(ownBalanceOwner.add(ownBalanceFeeReceiver)).to.equal(
-        xenBalanceOwner
+      expect(ownBalanceFeeReceiver.mul(19)).to.approximately(
+        ownBalanceOwner,
+        20
       );
-      expect(ownBalanceFeeReceiver.mul(19)).to.equal(ownBalanceOwner);
     });
 
     it("zeroes wallets", async function () {
@@ -372,9 +373,61 @@ describe("Wallet", function () {
       ).to.be.revertedWith("No access");
     });
   });
+
+  describe("Mint amount calculations", function () {
+    let deployTimestamp: BigNumber;
+    let original: number;
+    beforeEach(async function () {
+      deployTimestamp = await manager.deployTimestamp();
+      original = 1000000;
+    });
+
+    it("no time has passes, returns original", async function () {
+      const adjusted = await manager.getAdjustedMint(original);
+      expect(adjusted).to.equal(original);
+    });
+
+    it("less than day returns original", async function () {
+      await timeTravelSecs(24 * 60 * 59);
+      const adjusted = await manager.getAdjustedMint(original);
+      expect(adjusted).to.equal(original);
+    });
+
+    it("a day deducts 1%", async function () {
+      await timeTravel(1);
+      const adjusted = await manager.getAdjustedMint(original);
+      expect(adjusted).to.equal(original * 0.99);
+    });
+
+    it("ten days deducts 1% ^ 10", async function () {
+      await timeTravel(10);
+      const adjusted = await manager.getAdjustedMint(original);
+      const expected = Math.floor(original * 0.99 ** 10);
+      expect(adjusted).to.approximately(expected, 5);
+    });
+
+    it("fifty days deducts 1% ^ 50", async function () {
+      await timeTravel(50);
+      const adjusted = await manager.getAdjustedMint(original);
+      const expected = Math.floor(original * 0.99 ** 50);
+      expect(adjusted).to.approximately(expected, 20);
+    });
+
+    it("three hundred days deducts 1% ^ 300", async function () {
+      await timeTravel(300);
+      const adjusted = await manager.getAdjustedMint(original);
+      const expected = Math.floor(original * 0.99 ** 300);
+      expect(adjusted).to.approximately(expected, 50);
+    });
+  });
 });
 
-const timeTravel = async (days: number) => {
+const timeTravelSecs = async (seconds: number) => {
+  await network.provider.send("evm_increaseTime", [seconds]);
+  await network.provider.send("evm_mine");
+};
+
+export const timeTravel = async (days: number) => {
   const seconds = 24 * 60 * 60 * days;
   await network.provider.send("evm_increaseTime", [seconds]);
   await network.provider.send("evm_mine");
