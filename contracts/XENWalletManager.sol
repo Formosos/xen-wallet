@@ -124,9 +124,28 @@ contract XENWalletManager is Ownable {
         uint256 elapsedDays = (block.timestamp - deployTimestamp) /
             SECONDS_IN_DAY;
         // TODO: optimize
-        for (uint256 i = 0; i < elapsedDays; ++i) {
+
+        /* //version1, 280k gas for 1000 days
+         for (uint256 i = 0; i < elapsedDays; ++i) {
             original = (original * 99) / 100;
+        } */
+        // version2, 180k gas for 1000 days
+        /*for (uint256 i = 0; i < elapsedDays / 2; ++i) {
+            original = (original * 9801) / 10000;
+        }*/
+
+        //version3, 86k gas for 1000 days
+        /*   for (uint256 i = 0; i < elapsedDays / 5; ++i) {
+            original = (original * 9_509_900_499) / 10_000_000_000;
+        } */
+
+        // version4, 54k gas for 1000 days, 25k for 100 days
+        for (uint256 i = 0; i < elapsedDays / 10; ++i) {
+            original =
+                (original * 90_438_207_500_880_449_001) /
+                100_000_000_000_000_000_000;
         }
+
         return original;
     }
 
