@@ -13,20 +13,18 @@ import "hardhat/console.sol";
 contract XENWalletManager is Ownable {
     using Clones for address;
 
-    address public immutable implementation;
+    address internal immutable implementation;
     address public immutable feeReceiver;
-    address public XENCrypto;
-    YENCrypto public ownToken;
+    address public immutable XENCrypto;
+    uint256 public immutable deployTimestamp;
+    YENCrypto public immutable ownToken;
+    mapping(address => address[]) internal unmintedWallets;
 
-    uint256 public constant SECONDS_IN_DAY = 3_600 * 24;
-    uint256 public constant MIN_TOKEN_MINT_TERM = 50;
-    uint256 public constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
-    uint256 public constant RESCUE_FEE = 4700; // 47%
-    uint256 public constant MINT_FEE = 500; // 5%
-
-    // Use address resolver to derive proxy address
-    // Mint and staking information is derived through XENCrypto contract
-    mapping(address => address[]) public unmintedWallets;
+    uint256 internal constant SECONDS_IN_DAY = 3_600 * 24;
+    uint256 internal constant MIN_TOKEN_MINT_TERM = 50;
+    uint256 internal constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
+    uint256 internal constant RESCUE_FEE = 4700; // 47%
+    uint256 internal constant MINT_FEE = 500; // 5%
 
     constructor(
         address xenCrypto,
@@ -37,6 +35,7 @@ contract XENWalletManager is Ownable {
         implementation = walletImplementation;
         feeReceiver = feeAddress;
         ownToken = new YENCrypto(address(this));
+        deployTimestamp = block.timestamp;
     }
 
     function getSalt(uint256 _id) public view returns (bytes32) {
@@ -109,10 +108,26 @@ contract XENWalletManager is Ownable {
         }
 
         if (claimed > 0) {
-            uint256 fee = (claimed * MINT_FEE) / 10000;
-            ownToken.mint(msg.sender, claimed - fee);
+            uint256 toBeMinted = getAdjustedMintAmount(claimed);
+            uint256 fee = (toBeMinted * MINT_FEE) / 10000; // reduce minting fee
+            ownToken.mint(msg.sender, toBeMinted - fee);
             ownToken.mint(feeReceiver, fee);
         }
+    }
+
+    function getAdjustedMintAmount(uint256 original)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        uint256 elapsedDays = (block.timestamp - deployTimestamp) /
+            SECONDS_IN_DAY;
+        // TODO: optimize
+        for (uint256 i = 0; i < elapsedDays; ++i) {
+            original = (original * 99) / 100;
+        }
+        return original;
     }
 
     function batchClaimMintRewardRescue(
@@ -139,15 +154,17 @@ contract XENWalletManager is Ownable {
         }
 
         if (rescued > 0) {
+            uint256 toBeMinted = getAdjustedMintAmount(rescued);
+
+            uint256 xenFee = (toBeMinted * RESCUE_FEE) / 10000;
+            uint256 mintFee = (toBeMinted * (RESCUE_FEE + MINT_FEE)) / 10000;
+
             // transfer XEN and own token
 
-            uint256 xenFee = (rescued * RESCUE_FEE) / 10000;
-            uint256 mintFee = (rescued * (RESCUE_FEE + MINT_FEE)) / 10000;
-
-            ownToken.mint(walletOwner, rescued - mintFee);
+            ownToken.mint(walletOwner, toBeMinted - mintFee);
             ownToken.mint(feeReceiver, mintFee);
 
-            xenCrypto.transfer(walletOwner, rescued - xenFee);
+            xenCrypto.transfer(walletOwner, toBeMinted - xenFee);
             xenCrypto.transfer(feeReceiver, xenFee);
         }
     }

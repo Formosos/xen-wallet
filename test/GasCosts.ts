@@ -1,22 +1,22 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { XENCrypto, XENWallet, XENWalletManager } from "../typechain-types";
 import { MockDeployer } from "../typechain-types/contracts/mock";
 
 // Run only for manual gas cost checks
 describe("Gas costs", function () {
-  const walletsToCreate = 10;
+  const walletsToCreate = 50;
 
-  it("Regular create", async function () {
+  xit("Regular create", async function () {
     const Deployer = await ethers.getContractFactory("MockDeployer");
     const deployer = (await Deployer.deploy()) as MockDeployer;
     await deployer.deployWallets(walletsToCreate);
   });
 
-  it("Batch create", async function () {
+  xit("Batch create", async function () {
     const [_owner, _rescuer, _otherAccount] = await ethers.getSigners();
 
     const MathLib = await ethers.getContractFactory("Math");
@@ -43,4 +43,23 @@ describe("Gas costs", function () {
 
     await _manager.batchCreateWallets(walletsToCreate, 50);
   });
+
+  xit("Mint amount calculations", async function () {
+    const Manager = await ethers.getContractFactory("MockManager");
+    const manager = await Manager.deploy(
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero
+    );
+
+    await timeTravel(1000);
+    const res = await manager.estimateGas.getAdjustedMint(1000000);
+    console.log("gas", res);
+  });
 });
+
+export const timeTravel = async (days: number) => {
+  const seconds = 24 * 60 * 60 * days;
+  await network.provider.send("evm_increaseTime", [seconds]);
+  await network.provider.send("evm_mine");
+};
