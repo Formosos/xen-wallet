@@ -44,7 +44,7 @@ describe("Gas costs", function () {
     await _manager.batchCreateWallets(walletsToCreate, 50);
   });
 
-  xit("Mint amount calculations", async function () {
+  it("Mint amount calculations", async function () {
     const Manager = await ethers.getContractFactory("MockManager");
     const manager = await Manager.deploy(
       ethers.constants.AddressZero,
@@ -52,9 +52,14 @@ describe("Gas costs", function () {
       ethers.constants.AddressZero
     );
 
+    const original = 100000000;
+
     await timeTravel(1000);
-    const res = await manager.estimateGas.getAdjustedMint(1000000);
-    console.log("gas", res);
+    const res = await manager.getAdjustedMint(original);
+    const gas = await manager.estimateGas.getAdjustedMint(original);
+    console.log("gas", gas.toString());
+    console.log("target value: 4317, got value " + res.toString());
+    //expect(res).to.equal(4267);
   });
 });
 
