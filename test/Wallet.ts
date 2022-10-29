@@ -86,7 +86,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () {});
+    beforeEach(async function () { });
 
     it("sets the right data", async function () {
       await manager.batchCreateWallets(1, 50);
@@ -382,43 +382,25 @@ describe("Wallet", function () {
       original = 1000000;
     });
 
-    it("no time has passes, returns original", async function () {
+    it("no time has passed, returns original", async function () {
       const adjusted = await manager.getAdjustedMint(original);
-      expect(adjusted).to.equal(original);
+      expect(adjusted).to.equal(2 * original);
     });
 
-    it("less than day returns original", async function () {
-      await timeTravelSecs(24 * 60 * 59);
+    it("2 months deducts 5% ^ 8", async function () {
+      await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 2);
       const adjusted = await manager.getAdjustedMint(original);
-      expect(adjusted).to.equal(original);
-    });
-
-    it("a day deducts 1%", async function () {
-      await timeTravel(1);
-      const adjusted = await manager.getAdjustedMint(original);
-      expect(adjusted).to.equal(original * 0.99);
-    });
-
-    it("ten days deducts 1% ^ 10", async function () {
-      await timeTravel(10);
-      const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(original * 0.99 ** 10);
-      expect(adjusted).to.approximately(expected, 5);
-    });
-
-    it("fifty days deducts 1% ^ 50", async function () {
-      await timeTravel(50);
-      const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(original * 0.99 ** 50);
-      expect(adjusted).to.approximately(expected, 20);
-    });
-
-    it("three hundred days deducts 1% ^ 300", async function () {
-      await timeTravel(300);
-      const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(original * 0.99 ** 300);
+      const expected = Math.floor(2 * (original * 0.95 ** 8));
       expect(adjusted).to.approximately(expected, 50);
     });
+
+    it("8 months deducts 5% ^ 32", async function () {
+      await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 8);
+      const adjusted = await manager.getAdjustedMint(original);
+      const expected = Math.floor(2 * (original * (0.95 ** 32)));
+      expect(adjusted).to.approximately(expected, 50);
+    });
+
   });
 });
 

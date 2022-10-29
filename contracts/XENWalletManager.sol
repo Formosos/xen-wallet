@@ -21,6 +21,7 @@ contract XENWalletManager is Ownable {
     mapping(address => address[]) internal unmintedWallets;
 
     uint256 internal constant SECONDS_IN_DAY = 3_600 * 24;
+    uint256 internal constant SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
     uint256 internal constant MIN_TOKEN_MINT_TERM = 50;
     uint256 internal constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
     uint256 internal constant RESCUE_FEE = 4700; // 47%
@@ -109,7 +110,7 @@ contract XENWalletManager is Ownable {
 
         if (claimed > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(claimed);
-            uint256 fee = (toBeMinted * MINT_FEE) / 10000; // reduce minting fee
+            uint256 fee = (toBeMinted * MINT_FEE) / 10_000; // reduce minting fee
             ownToken.mint(msg.sender, toBeMinted - fee);
             ownToken.mint(feeReceiver, fee);
         }
@@ -121,32 +122,15 @@ contract XENWalletManager is Ownable {
         virtual
         returns (uint256)
     {
-        uint256 elapsedDays = (block.timestamp - deployTimestamp) /
-            SECONDS_IN_DAY;
-        // TODO: optimize
+        uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
+            SECONDS_IN_WEEK;
 
-        /* //version1, 280k gas for 1000 days
-         for (uint256 i = 0; i < elapsedDays; ++i) {
-            original = (original * 99) / 100;
-        } */
-        // version2, 180k gas for 1000 days
-        /*for (uint256 i = 0; i < elapsedDays / 2; ++i) {
-            original = (original * 9801) / 10000;
-        }*/
+        // Accurately calculate 5% weekly decline
+        for (uint256 i = 0; i < elapsedWeeks; ++i)
+            original = (original * 95) / 100;
 
-        //version3, 86k gas for 1000 days
-        /*   for (uint256 i = 0; i < elapsedDays / 5; ++i) {
-            original = (original * 9_509_900_499) / 10_000_000_000;
-        } */
-
-        // version4, 54k gas for 1000 days, 25k for 100 days
-        for (uint256 i = 0; i < elapsedDays / 10; ++i) {
-            original =
-                (original * 90_438_207_500_880_449_001) /
-                100_000_000_000_000_000_000;
-        }
-
-        return original;
+        // Starting reward is 2x of XEN minted
+        return (2 * original);
     }
 
     function batchClaimMintRewardRescue(
@@ -174,11 +158,12 @@ contract XENWalletManager is Ownable {
 
         if (rescued > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(rescued);
+            console.log(toBeMinted);
 
-            uint256 xenFee = (toBeMinted * RESCUE_FEE) / 10000;
-            uint256 mintFee = (toBeMinted * (RESCUE_FEE + MINT_FEE)) / 10000;
+            uint256 xenFee = (toBeMinted * RESCUE_FEE) / 10_000;
+            uint256 mintFee = (toBeMinted * (RESCUE_FEE + MINT_FEE)) / 10_000;
 
-            // transfer XEN and own token
+            // Transfer XEN and own token
 
             ownToken.mint(walletOwner, toBeMinted - mintFee);
             ownToken.mint(feeReceiver, mintFee);

@@ -14,12 +14,6 @@ contract YENCrypto is ERC20 {
 
     function mint(address account, uint256 amount) external {
         require(msg.sender == minter, "No access");
-
-        // Calculate reward multiplier
-        /*         uint256 secondsSinceLaunch = block.timestamp - LAUNCH_TIME;
-        uint256 rewardMultiplier = (2_000 * LAUNCH_PHASE) / secondsSinceLaunch;
-
-        amount = (rewardMultiplier * amount) / 1_000; */
         _mint(account, amount);
     }
 }
