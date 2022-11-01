@@ -158,9 +158,8 @@ contract XENWalletManager is Ownable {
 
         if (rescued > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(rescued);
-            console.log(toBeMinted);
 
-            uint256 xenFee = (toBeMinted * RESCUE_FEE) / 10_000;
+            uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
             uint256 mintFee = (toBeMinted * (RESCUE_FEE + MINT_FEE)) / 10_000;
 
             // Transfer XEN and own token
@@ -168,7 +167,7 @@ contract XENWalletManager is Ownable {
             ownToken.mint(walletOwner, toBeMinted - mintFee);
             ownToken.mint(feeReceiver, mintFee);
 
-            xenCrypto.transfer(walletOwner, toBeMinted - xenFee);
+            xenCrypto.transfer(walletOwner, rescued - xenFee);
             xenCrypto.transfer(feeReceiver, xenFee);
         }
     }

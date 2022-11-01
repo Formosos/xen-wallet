@@ -86,7 +86,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () { });
+    beforeEach(async function () {});
 
     it("sets the right data", async function () {
       await manager.batchCreateWallets(1, 50);
@@ -329,7 +329,7 @@ describe("Wallet", function () {
       expect(ownBalanceOwner).to.above(0);
 
       expect(xenBalanceRescuer).to.below(ownBalanceRescuer);
-      expect(xenBalanceOwner).to.above(ownBalanceOwner);
+      expect(ownBalanceOwner).to.above(xenBalanceOwner);
       expect(ownBalanceRescuer).to.above(ownBalanceOwner);
       expect(xenBalanceRescuer).to.below(xenBalanceOwner);
       expect(xenBalanceRescuer.mul(2)).to.above(xenBalanceOwner);
@@ -382,7 +382,7 @@ describe("Wallet", function () {
       original = 1000000;
     });
 
-    it("no time has passed, returns original", async function () {
+    it("no time has passed, returns 2*original", async function () {
       const adjusted = await manager.getAdjustedMint(original);
       expect(adjusted).to.equal(2 * original);
     });
@@ -397,10 +397,9 @@ describe("Wallet", function () {
     it("8 months deducts 5% ^ 32", async function () {
       await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 8);
       const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(2 * (original * (0.95 ** 32)));
+      const expected = Math.floor(2 * (original * 0.95 ** 32));
       expect(adjusted).to.approximately(expected, 50);
     });
-
   });
 });
 
