@@ -70,6 +70,10 @@ contract XENWalletManager is Ownable {
         }
     }
 
+    function getWalletCount(address owner) public view returns (uint256) {
+        return unmintedWallets[owner].length;
+    }
+
     function getWallets(
         address owner,
         uint256 _startId,

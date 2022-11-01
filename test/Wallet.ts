@@ -103,30 +103,6 @@ describe("Wallet", function () {
       expect(xenAddress).to.equal(xen.address);
     });
 
-    it("is possible to retrieve the wallets", async function () {
-      await manager.batchCreateWallets(5, 50);
-      const wallets = await manager.getWallets(deployer.address, 0, 4);
-
-      expect(wallets.length).to.equal(5);
-      for (let i = 0; i < wallets.length; i++) {
-        expect(wallets[i]).to.not.empty;
-        expect(wallets[i]).to.not.equal(ethers.constants.AddressZero);
-        // make sure all addresses are unique
-        expect(wallets.filter((w) => w == wallets[i]).length).to.equal(1);
-      }
-    });
-
-    it("is possible to retrieve the wallet infos", async function () {
-      await manager.batchCreateWallets(5, 50);
-      const wallets = await manager.getWallets(deployer.address, 0, 4);
-      const infos = await manager.getUserInfos(wallets);
-
-      expect(infos.length).to.equal(5);
-      for (let i = 0; i < infos.length; i++) {
-        expect(infos[i].rank).to.above(0);
-      }
-    });
-
     it("can create more wallets", async function () {
       await manager.batchCreateWallets(5, 50);
       await manager.batchCreateWallets(3, 50);
@@ -190,13 +166,6 @@ describe("Wallet", function () {
       );
     });
 
-    it("fails when querying for non-existing wallets", async function () {
-      await manager.batchCreateWallets(5, 50);
-      await expect(
-        manager.getWallets(deployer.address, 2, 20)
-      ).to.be.revertedWithPanic(PANIC_CODES.ARRAY_ACCESS_OUT_OF_BOUNDS);
-    });
-
     it("no direct access", async function () {
       await manager.batchCreateWallets(1, 50);
       const wallets = await manager.getWallets(deployer.address, 0, 0);
@@ -208,6 +177,65 @@ describe("Wallet", function () {
       await expect(
         wallet.connect(deployer).claimAndTransferMintReward(deployer.address)
       ).to.be.revertedWith("No access");
+    });
+  });
+
+  describe("Wallet retrieval", function () {
+    const day = 24 * 60 * 60;
+    beforeEach(async function () {});
+
+    it("is possible to retrieve zero wallet count", async function () {
+      const walletCount = await manager.getWalletCount(deployer.address);
+
+      expect(walletCount).to.equal(0);
+    });
+
+    it("is possible to retrieve the wallet count", async function () {
+      await manager.connect(deployer).batchCreateWallets(5, 50);
+      const walletCount = await manager.getWalletCount(deployer.address);
+
+      expect(walletCount).to.equal(5);
+    });
+
+    it("wallet count doesn't change after minting", async function () {
+      await manager.connect(deployer).batchCreateWallets(5, 50);
+      await timeTravel(50);
+      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 3);
+
+      const walletCount = await manager.getWalletCount(deployer.address);
+
+      expect(walletCount).to.equal(5);
+    });
+
+    it("is possible to retrieve the wallets", async function () {
+      await manager.batchCreateWallets(5, 50);
+      const wallets = await manager.getWallets(deployer.address, 0, 4);
+
+      expect(wallets.length).to.equal(5);
+      for (let i = 0; i < wallets.length; i++) {
+        expect(wallets[i]).to.not.empty;
+        expect(wallets[i]).to.not.equal(ethers.constants.AddressZero);
+        // make sure all addresses are unique
+        expect(wallets.filter((w) => w == wallets[i]).length).to.equal(1);
+      }
+    });
+
+    it("is possible to retrieve the wallet infos", async function () {
+      await manager.batchCreateWallets(5, 50);
+      const wallets = await manager.getWallets(deployer.address, 0, 4);
+      const infos = await manager.getUserInfos(wallets);
+
+      expect(infos.length).to.equal(5);
+      for (let i = 0; i < infos.length; i++) {
+        expect(infos[i].rank).to.above(0);
+      }
+    });
+
+    it("fails when querying for non-existing wallets", async function () {
+      await manager.batchCreateWallets(5, 50);
+      await expect(
+        manager.getWallets(deployer.address, 2, 20)
+      ).to.be.revertedWithPanic(PANIC_CODES.ARRAY_ACCESS_OUT_OF_BOUNDS);
     });
   });
 
