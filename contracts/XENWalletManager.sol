@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-// import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
@@ -39,6 +38,8 @@ contract XENWalletManager is Ownable {
         deployTimestamp = block.timestamp;
     }
 
+    //////////////////  VIEWS
+
     function getSalt(uint256 _id) public view returns (bytes32) {
         return keccak256(abi.encodePacked(msg.sender, _id));
     }
@@ -49,25 +50,6 @@ contract XENWalletManager is Ownable {
         returns (address)
     {
         return implementation.predictDeterministicAddress(salt);
-    }
-
-    // Create wallets
-    function createWallet(uint256 _id, uint256 term) internal {
-        bytes32 salt = getSalt(_id);
-        XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
-
-        clone.initialize(XENCrypto, address(this));
-        clone.claimRank(term);
-
-        unmintedWallets[msg.sender].push(address(clone));
-    }
-
-    function batchCreateWallets(uint256 amount, uint256 term) external {
-        require(term >= 50, "Too short term");
-        uint256 existing = unmintedWallets[msg.sender].length;
-        for (uint256 id = 0; id < amount; id++) {
-            createWallet(id + existing, term);
-        }
     }
 
     function getWalletCount(address owner) public view returns (uint256) {
@@ -98,6 +80,44 @@ contract XENWalletManager is Ownable {
         }
     }
 
+    function getAdjustedMintAmount(uint256 original)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
+            SECONDS_IN_WEEK;
+
+        // Accurately calculate 5% weekly decline
+        for (uint256 i = 0; i < elapsedWeeks; ++i)
+            original = (original * 95) / 100;
+
+        // Starting reward is 2x of XEN minted
+        return (2 * original);
+    }
+
+    ////////////////// STATE CHANGING FUNCTIONS
+
+    // Create wallets
+    function createWallet(uint256 _id, uint256 term) internal {
+        bytes32 salt = getSalt(_id);
+        XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
+
+        clone.initialize(XENCrypto, address(this));
+        clone.claimRank(term);
+
+        unmintedWallets[msg.sender].push(address(clone));
+    }
+
+    function batchCreateWallets(uint256 amount, uint256 term) external {
+        require(term >= 50, "Too short term");
+        uint256 existing = unmintedWallets[msg.sender].length;
+        for (uint256 id = 0; id < amount; id++) {
+            createWallet(id + existing, term);
+        }
+    }
+
     // Claims rewards and sends them to the wallet owner
     function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
         external
@@ -118,23 +138,6 @@ contract XENWalletManager is Ownable {
             ownToken.mint(msg.sender, toBeMinted - fee);
             ownToken.mint(feeReceiver, fee);
         }
-    }
-
-    function getAdjustedMintAmount(uint256 original)
-        internal
-        view
-        virtual
-        returns (uint256)
-    {
-        uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
-            SECONDS_IN_WEEK;
-
-        // Accurately calculate 5% weekly decline
-        for (uint256 i = 0; i < elapsedWeeks; ++i)
-            original = (original * 95) / 100;
-
-        // Starting reward is 2x of XEN minted
-        return (2 * original);
     }
 
     function batchClaimMintRewardRescue(
