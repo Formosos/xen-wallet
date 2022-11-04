@@ -416,20 +416,22 @@ describe("Wallet", function () {
     });
 
     it("2 months deducts 5% ^ 8", async function () {
-      await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 2);
-      const adjusted = await manager.getAdjustedMint(original);
       // Simplification of compound calculation based on geometric series
       // https://en.wikipedia.org/wiki/Geometric_series
-      const currentWeek = 9;
-      const expected = Math.floor(2 * original * (1 / currentWeek) * (1 - 0.95 ** currentWeek) / (1 - 0.95));
+      const currentWeek = 8;
+      await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
+      const adjusted = await manager.getAdjustedMint(original);
+      const expected = Math.floor(2 * original * (1 / (currentWeek + 1))
+        * (1 - 0.95 ** (currentWeek + 1)) / (1 - 0.95));
       expect(adjusted).to.approximately(expected, 200);
     });
 
     it("8 months deducts 5% ^ 32", async function () {
-      await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 8);
+      const currentWeek = 32;
+      await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
       const adjusted = await manager.getAdjustedMint(original);
-      const currentWeek = 33;
-      const expected = Math.floor(2 * original * (1 / currentWeek) * (1 - 0.95 ** currentWeek) / (1 - 0.95));
+      const expected = Math.floor(2 * original * (1 / (currentWeek + 1))
+        * (1 - 0.95 ** (currentWeek + 1)) / (1 - 0.95));
       expect(adjusted).to.approximately(expected, 200);
     });
   });
