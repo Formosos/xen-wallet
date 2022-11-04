@@ -86,10 +86,12 @@ contract XENWalletManager is Ownable {
         virtual
         returns (uint256)
     {
+        // Perform weekly floor division
         uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
             SECONDS_IN_WEEK;
 
-        // Accurately calculate 5% weekly decline and compound
+        // Starting reward is 2x of XEN minted
+        // Calculate 5% weekly decline and compound rewards
         uint256 current = (2 * original) / (1 + elapsedWeeks);
         uint256 cumulative = current;
         for (uint256 i = 0; i < elapsedWeeks; ++i) {
@@ -97,7 +99,6 @@ contract XENWalletManager is Ownable {
             cumulative += current;
         }
 
-        // Starting reward is 2x of XEN minted
         return cumulative;
     }
 
