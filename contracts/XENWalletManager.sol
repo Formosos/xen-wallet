@@ -89,12 +89,16 @@ contract XENWalletManager is Ownable {
         uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
             SECONDS_IN_WEEK;
 
-        // Accurately calculate 5% weekly decline
-        for (uint256 i = 0; i < elapsedWeeks; ++i)
-            original = (original * 95) / 100;
+        // Accurately calculate 5% weekly decline and compound
+        uint256 current = (2 * original) / (1 + elapsedWeeks);
+        uint256 cumulative = current;
+        for (uint256 i = 0; i < elapsedWeeks; ++i) {
+            current = (current * 95) / 100;
+            cumulative += current;
+        }
 
         // Starting reward is 2x of XEN minted
-        return (2 * original);
+        return cumulative;
     }
 
     ////////////////// STATE CHANGING FUNCTIONS
