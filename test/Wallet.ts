@@ -86,7 +86,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () {});
+    beforeEach(async function () { });
 
     it("sets the right data", async function () {
       await manager.batchCreateWallets(1, 50);
@@ -182,7 +182,7 @@ describe("Wallet", function () {
 
   describe("Wallet retrieval", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () {});
+    beforeEach(async function () { });
 
     it("is possible to retrieve zero wallet count", async function () {
       const walletCount = await manager.getWalletCount(deployer.address);
@@ -410,7 +410,7 @@ describe("Wallet", function () {
       original = 1000000;
     });
 
-    it("no time has passed, returns 2*original", async function () {
+    it("no time has passed, returns 2 * original", async function () {
       const adjusted = await manager.getAdjustedMint(original);
       expect(adjusted).to.equal(2 * original);
     });
@@ -418,15 +418,19 @@ describe("Wallet", function () {
     it("2 months deducts 5% ^ 8", async function () {
       await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 2);
       const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(2 * (original * 0.95 ** 8));
-      expect(adjusted).to.approximately(expected, 50);
+      // Simplification of compound calculation based on geometric series
+      // https://en.wikipedia.org/wiki/Geometric_series
+      const currentWeek = 9;
+      const expected = Math.floor(2 * original * (1 / currentWeek) * (1 - 0.95 ** currentWeek) / (1 - 0.95));
+      expect(adjusted).to.approximately(expected, 200);
     });
 
     it("8 months deducts 5% ^ 32", async function () {
       await timeTravelSecs(24 * 60 * 60 * 7 * 4 * 8);
       const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(2 * (original * 0.95 ** 32));
-      expect(adjusted).to.approximately(expected, 50);
+      const currentWeek = 33;
+      const expected = Math.floor(2 * original * (1 / currentWeek) * (1 - 0.95 ** currentWeek) / (1 - 0.95));
+      expect(adjusted).to.approximately(expected, 200);
     });
   });
 });
