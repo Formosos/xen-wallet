@@ -86,7 +86,7 @@ describe("Wallet", function () {
 
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () { });
+    beforeEach(async function () {});
 
     it("sets the right data", async function () {
       await manager.batchCreateWallets(1, 50);
@@ -182,7 +182,7 @@ describe("Wallet", function () {
 
   describe("Wallet retrieval", function () {
     const day = 24 * 60 * 60;
-    beforeEach(async function () { });
+    beforeEach(async function () {});
 
     it("is possible to retrieve zero wallet count", async function () {
       const walletCount = await manager.getWalletCount(deployer.address);
@@ -415,24 +415,20 @@ describe("Wallet", function () {
       expect(adjusted).to.equal(2 * original);
     });
 
-    it("2 months deducts 5% ^ 8", async function () {
-      // Simplification of compound calculation based on geometric series
-      // https://en.wikipedia.org/wiki/Geometric_series
-      const currentWeek = 8;
+    it("first week returns right amount", async function () {
+      const currentWeek = 1;
       await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
       const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(2 * original * (1 / (currentWeek + 1))
-        * (1 - 0.95 ** (currentWeek + 1)) / (1 - 0.95));
-      expect(adjusted).to.approximately(expected, 200);
+      const expected = Math.floor((original * 195000) / 100000);
+      expect(adjusted).to.equal(expected);
     });
 
-    it("8 months deducts 5% ^ 32", async function () {
-      const currentWeek = 32;
+    it("week after precalculated returns the same as the last precalculated", async function () {
+      const currentWeek = 1000;
       await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
       const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor(2 * original * (1 / (currentWeek + 1))
-        * (1 - 0.95 ** (currentWeek + 1)) / (1 - 0.95));
-      expect(adjusted).to.approximately(expected, 200);
+      const expected = Math.floor((original * 7999) / 100000);
+      expect(adjusted).to.equal(expected);
     });
   });
 });
