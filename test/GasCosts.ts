@@ -44,7 +44,7 @@ describe("Gas costs", function () {
     await _manager.batchCreateWallets(walletsToCreate, 50);
   });
 
-  it("Mint amount calculations", async function () {
+  xit("Mint amount calculations", async function () {
     const Manager = await ethers.getContractFactory("MockManager");
     const manager = await Manager.deploy(
       ethers.constants.AddressZero,
@@ -60,6 +60,17 @@ describe("Gas costs", function () {
     console.log("gas", gas.toString());
     console.log("target value: 4317, got value " + res.toString());
     //expect(res).to.equal(4267);
+  });
+
+  xit("Manager deployment", async function () {
+    const [_owner, _rescuer, _otherAccount] = await ethers.getSigners();
+
+    const Manager = await ethers.getContractFactory("XENWalletManager");
+    const _manager = await Manager.deploy(
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero
+    );
   });
 });
 
