@@ -7,7 +7,7 @@ import { XENCrypto, XENWallet, XENWalletManager } from "../typechain-types";
 import { MockDeployer } from "../typechain-types/contracts/mock";
 
 // Run only for manual gas cost checks
-describe("Gas costs", function () {
+xdescribe("Gas costs", function () {
   const walletsToCreate = 50;
 
   xit("Regular create", async function () {
