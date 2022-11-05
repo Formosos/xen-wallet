@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "precalc": "node scripts/rateGenerator.js > precalculatedRates.txt"
   },
   "repository": {
     "type": "git",
