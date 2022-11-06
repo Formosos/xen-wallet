@@ -356,8 +356,8 @@ describe("Wallet", function () {
       expect(xenBalanceOwner).to.above(0);
       expect(ownBalanceOwner).to.above(0);
 
-      expect(xenBalanceRescuer).to.below(ownBalanceRescuer);
-      expect(ownBalanceOwner).to.above(xenBalanceOwner);
+      expect(xenBalanceRescuer).to.above(ownBalanceRescuer);
+      expect(ownBalanceOwner).to.below(xenBalanceOwner);
       expect(ownBalanceRescuer).to.above(ownBalanceOwner);
       expect(xenBalanceRescuer).to.below(xenBalanceOwner);
       expect(xenBalanceRescuer.mul(2)).to.above(xenBalanceOwner);
@@ -410,24 +410,27 @@ describe("Wallet", function () {
       original = 1000000;
     });
 
-    it("no time has passed, returns 2 * original", async function () {
-      const adjusted = await manager.getAdjustedMint(original);
-      expect(adjusted).to.equal(2 * original);
+    let secondsInWeek = 60 * 60 * 24 * 7;
+
+    it("no time has passed, returns 0.102586724 * original", async function () {
+      const adjusted = await manager.getAdjustedMint(original, 0);
+      const expected = Math.floor(original * 102586724 / 1000000000);
+      expect(adjusted).to.equal(expected);
     });
 
     it("first week returns right amount", async function () {
       const currentWeek = 1;
-      await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
-      const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor((original * 195000) / 100000);
+      await timeTravelSecs(secondsInWeek * currentWeek);
+      const adjusted = await manager.getAdjustedMint(original, currentWeek * secondsInWeek);
+      const expected = Math.floor(original * 200044111 / 1000000000);
       expect(adjusted).to.equal(expected);
     });
 
     it("week after precalculated returns the same as the last precalculated", async function () {
-      const currentWeek = 1000;
+      const currentWeek = 10;
       await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
-      const adjusted = await manager.getAdjustedMint(original);
-      const expected = Math.floor((original * 7999) / 100000);
+      const adjusted = await manager.getAdjustedMint(original, 2 * secondsInWeek);
+      const expected = Math.floor((original * (884707718 - 690571906)) / 1000000000);
       expect(adjusted).to.equal(expected);
     });
   });
