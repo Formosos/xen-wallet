@@ -55,11 +55,11 @@ xdescribe("Gas costs", function () {
     const original = 100000000;
 
     await timeTravel(1000);
-    const res = await manager.getAdjustedMint(original);
-    const gas = await manager.estimateGas.getAdjustedMint(original);
+    const res = await manager.getAdjustedMint(original, 10);
+    const gas = await manager.estimateGas.getAdjustedMint(original, 10);
     console.log("gas", gas.toString());
     console.log("target value: 4317, got value " + res.toString());
-    //expect(res).to.equal(4267);
+    expect(res).to.equal(4267);
   });
 
   xit("Manager deployment", async function () {

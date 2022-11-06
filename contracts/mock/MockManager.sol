@@ -16,7 +16,7 @@ contract MockManager is XENWalletManager {
         return implementation;
     }
 
-    function getAdjustedMint(uint256 original) public view returns (uint256) {
-        return super.getAdjustedMintAmount(original);
+    function getAdjustedMint(uint256 original, uint256 term) public view returns (uint256) {
+        return super.getAdjustedMintAmount(original, term);
     }
 }
