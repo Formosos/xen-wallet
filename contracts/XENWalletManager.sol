@@ -17,7 +17,11 @@ contract XENWalletManager is Ownable {
     address public immutable XENCrypto;
     uint256 public immutable deployTimestamp;
     YENCrypto public immutable ownToken;
+
+    uint256 public totalWallets;
+    uint256 public activeWallets;
     mapping(address => address[]) internal unmintedWallets;
+
     uint32[500] internal weeklyRewardMultiplier;
 
     uint256 internal constant SECONDS_IN_DAY = 3_600 * 24;
@@ -55,23 +59,41 @@ contract XENWalletManager is Ownable {
         return implementation.predictDeterministicAddress(salt);
     }
 
-    function getWalletCount(address owner) public view returns (uint256) {
-        return unmintedWallets[owner].length;
+    /// @notice Number of elapsed weeks after deployment
+    function getElapsedWeeks() public view returns (uint256) {
+        return (block.timestamp - deployTimestamp) / SECONDS_IN_WEEK;
     }
 
+    /// @dev Get number of active mint wallets
+    function getActiveWallets() external view returns (uint256) {
+        return activeWallets;
+    }
+
+    /// @dev Get number of wallets that have batch minted
+    function getTotalWallets() external view returns (uint256) {
+        return totalWallets;
+    }
+
+    /// @dev Get wallet count for a wallet owner
+    function getWalletCount(address _owner) public view returns (uint256) {
+        return unmintedWallets[_owner].length;
+    }
+
+    /// @dev Get wallets using pagination approach
     function getWallets(
-        address owner,
+        address _owner,
         uint256 _startId,
         uint256 _endId
     ) external view returns (address[] memory) {
         uint256 size = _endId - _startId + 1;
         address[] memory wallets = new address[](size);
         for (uint256 id = _startId; id <= _endId; id++) {
-            wallets[id - _startId] = unmintedWallets[owner][id];
+            wallets[id - _startId] = unmintedWallets[_owner][id];
         }
         return wallets;
     }
 
+    /// @notice Mint infos for an array of addresses
     function getUserInfos(address[] calldata owners)
         external
         view
@@ -84,6 +106,7 @@ contract XENWalletManager is Ownable {
     }
 
     /// @notice Limits range for reward multiplier
+    /// @return Returns weekly reward multiplier at specific week
     function getWeeklyRewardMultiplier(int256 _index)
         internal
         view
@@ -106,7 +129,7 @@ contract XENWalletManager is Ownable {
         view
         returns (uint256)
     {
-        require(_elapsedWeeks >= _termWeeks, "Incorrect term");
+        require(_elapsedWeeks >= _termWeeks, "Incorrect term format");
         return getWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
             getWeeklyRewardMultiplier(int256(_elapsedWeeks - _termWeeks) - 1);
     }
@@ -120,11 +143,8 @@ contract XENWalletManager is Ownable {
         virtual
         returns (uint256)
     {
-        // Perform weekly floor division
-        uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
-            SECONDS_IN_WEEK;
+        uint256 elapsedWeeks = getElapsedWeeks();
         uint256 termWeeks = _termSeconds / SECONDS_IN_WEEK;
-
         return (_originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) / 1_000_000_000;
     }
 
@@ -148,6 +168,9 @@ contract XENWalletManager is Ownable {
         for (uint256 id = 0; id < amount; id++) {
             createWallet(id + existing, term);
         }
+
+        totalWallets += amount;
+        activeWallets += amount;
     }
 
     // Claims rewards and sends them to the wallet owner
@@ -158,6 +181,7 @@ contract XENWalletManager is Ownable {
 
         uint256 claimed = 0;
         uint256 averageTerm = 0;
+        uint256 walletRange = _endId - _startId + 1;
 
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = unmintedWallets[msg.sender][id];
@@ -169,7 +193,8 @@ contract XENWalletManager is Ownable {
             unmintedWallets[msg.sender][id] = address(0x0);
         }
 
-        averageTerm = averageTerm / (_endId - _startId + 1);
+        averageTerm = averageTerm / walletRange;
+        activeWallets -= walletRange;
 
         if (claimed > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(claimed, averageTerm);
@@ -190,6 +215,7 @@ contract XENWalletManager is Ownable {
         IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
         uint256 rescued = 0;
         uint256 averageTerm = 0;
+        uint256 walletRange = _endId - _startId + 1;
 
         for (uint256 id = _startId; id <= _endId; id++) {
             address proxy = unmintedWallets[walletOwner][id];
@@ -205,7 +231,8 @@ contract XENWalletManager is Ownable {
             }
         }
 
-        averageTerm = averageTerm / (_endId - _startId + 1);
+        averageTerm = averageTerm / walletRange;
+        activeWallets -= walletRange;
 
         if (rescued > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(rescued, averageTerm);
