@@ -12,8 +12,8 @@ import "hardhat/console.sol";
 contract XENWalletManager is Ownable {
     using Clones for address;
 
+    address public feeReceiver;
     address internal immutable implementation;
-    address public immutable feeReceiver;
     address public immutable XENCrypto;
     uint256 public immutable deployTimestamp;
     YENCrypto public immutable ownToken;
@@ -90,8 +90,7 @@ contract XENWalletManager is Ownable {
         virtual
         returns (uint256)
     {
-        if (_index < 0)
-            return 0;
+        if (_index < 0) return 0;
         if (_index >= int256(weeklyRewardMultiplier.length))
             return weeklyRewardMultiplier[499];
         return weeklyRewardMultiplier[uint256(_index)];
@@ -107,25 +106,26 @@ contract XENWalletManager is Ownable {
         returns (uint256)
     {
         require(_elapsedWeeks >= _termWeeks, "Incorrect term");
-        return getWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
+        return
+            getWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
             getWeeklyRewardMultiplier(int256(_elapsedWeeks - _termWeeks) - 1);
     }
 
     /// @notice Get adjusted mint amount based on reward multiplier
     /// @param _originalAmount The original mint amount without adjustment
     /// @param _termSeconds The term limit in seconds
-    function getAdjustedMintAmount(uint256 _originalAmount, uint256 _termSeconds)
-        internal
-        view
-        virtual
-        returns (uint256)
-    {
+    function getAdjustedMintAmount(
+        uint256 _originalAmount,
+        uint256 _termSeconds
+    ) internal view virtual returns (uint256) {
         // Perform weekly floor division
         uint256 elapsedWeeks = (block.timestamp - deployTimestamp) /
             SECONDS_IN_WEEK;
         uint256 termWeeks = _termSeconds / SECONDS_IN_WEEK;
 
-        return (_originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) / 1_000_000_000;
+        return
+            (_originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) /
+            1_000_000_000;
     }
 
     ////////////////// STATE CHANGING FUNCTIONS
@@ -183,8 +183,7 @@ contract XENWalletManager is Ownable {
         address walletOwner,
         uint256 _startId,
         uint256 _endId
-    ) external {
-        require(msg.sender == owner(), "No access");
+    ) external onlyOwner {
         require(_endId >= _startId, "Forward ordering");
 
         IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
@@ -221,6 +220,10 @@ contract XENWalletManager is Ownable {
             xenCrypto.transfer(walletOwner, rescued - xenFee);
             xenCrypto.transfer(feeReceiver, xenFee);
         }
+    }
+
+    function changeFeeReceiver(address newReceiver) external onlyOwner {
+        feeReceiver = newReceiver;
     }
 
     function populateRates() internal virtual {
