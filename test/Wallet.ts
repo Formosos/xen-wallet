@@ -84,6 +84,21 @@ describe("Wallet", function () {
     });
   });
 
+  describe("Fee receiver update", function () {
+    it("works", async function () {
+      await manager.connect(deployer).changeFeeReceiver(user2.address);
+      const feeRec = await manager.feeReceiver();
+
+      expect(feeRec).to.equal(user2.address);
+    });
+
+    it("fails if not owner", async function () {
+      await expect(
+        manager.connect(rescuer).changeFeeReceiver(user2.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
   describe("Wallet creation", function () {
     const day = 24 * 60 * 60;
     beforeEach(async function () {});
@@ -398,7 +413,7 @@ describe("Wallet", function () {
     it("fails if called by non-owner", async function () {
       await expect(
         manager.connect(user2).batchClaimMintRewardRescue(user2.address, 5, 5)
-      ).to.be.revertedWith("No access");
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 
@@ -414,23 +429,31 @@ describe("Wallet", function () {
 
     it("no time has passed, returns 0.102586724 * original", async function () {
       const adjusted = await manager.getAdjustedMint(original, 0);
-      const expected = Math.floor(original * 102586724 / 1000000000);
+      const expected = Math.floor((original * 102586724) / 1000000000);
       expect(adjusted).to.equal(expected);
     });
 
     it("first week returns right amount", async function () {
       const currentWeek = 1;
       await timeTravelSecs(secondsInWeek * currentWeek);
-      const adjusted = await manager.getAdjustedMint(original, currentWeek * secondsInWeek);
-      const expected = Math.floor(original * 200044111 / 1000000000);
+      const adjusted = await manager.getAdjustedMint(
+        original,
+        currentWeek * secondsInWeek
+      );
+      const expected = Math.floor((original * 200044111) / 1000000000);
       expect(adjusted).to.equal(expected);
     });
 
     it("week after precalculated returns the same as the last precalculated", async function () {
       const currentWeek = 10;
       await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
-      const adjusted = await manager.getAdjustedMint(original, 2 * secondsInWeek);
-      const expected = Math.floor((original * (884707718 - 690571906)) / 1000000000);
+      const adjusted = await manager.getAdjustedMint(
+        original,
+        2 * secondsInWeek
+      );
+      const expected = Math.floor(
+        (original * (884707718 - 690571906)) / 1000000000
+      );
       expect(adjusted).to.equal(expected);
     });
   });
