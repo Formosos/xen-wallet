@@ -418,10 +418,8 @@ describe("Wallet", function () {
   });
 
   describe("Mint amount calculations", function () {
-    let deployTimestamp: BigNumber;
     let original: number;
     beforeEach(async function () {
-      deployTimestamp = await manager.deployTimestamp();
       original = 1000000;
     });
 
@@ -444,13 +442,27 @@ describe("Wallet", function () {
       expect(adjusted).to.equal(expected);
     });
 
-    it("week after precalculated returns the same as the last precalculated", async function () {
+    it("tenth week returs right amount", async function () {
       const currentWeek = 10;
       await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
       const adjusted = await manager.getAdjustedMint(
         original,
         2 * secondsInWeek
       );
+      const expected = Math.floor(
+        (original * (884707718 - 690571906)) / 1000000000
+      );
+      expect(adjusted).to.equal(expected);
+    });
+
+    it("a week after precalculated values returns the same as the last precalculated", async function () {
+      const currentWeek = 260;
+      await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
+      const adjusted = await manager.getAdjustedMint(
+        original,
+        2 * secondsInWeek
+      );
+      // FIXME
       const expected = Math.floor(
         (original * (884707718 - 690571906)) / 1000000000
       );

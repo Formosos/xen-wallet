@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
-import "hardhat/console.sol";
 
 contract XENWalletManager is Ownable {
     using Clones for address;
@@ -22,7 +21,7 @@ contract XENWalletManager is Ownable {
     uint256 public activeWallets;
     mapping(address => address[]) internal unmintedWallets;
 
-    uint32[500] internal weeklyRewardMultiplier;
+    uint32[250] internal weeklyRewardMultiplier;
 
     uint256 internal constant SECONDS_IN_DAY = 3_600 * 24;
     uint256 internal constant SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
@@ -115,7 +114,7 @@ contract XENWalletManager is Ownable {
     {
         if (_index < 0) return 0;
         if (_index >= int256(weeklyRewardMultiplier.length))
-            return weeklyRewardMultiplier[499];
+            return weeklyRewardMultiplier[249];
         return weeklyRewardMultiplier[uint256(_index)];
     }
 
@@ -129,22 +128,23 @@ contract XENWalletManager is Ownable {
         returns (uint256)
     {
         require(_elapsedWeeks >= _termWeeks, "Incorrect term format");
-        return getWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
+        return
+            getWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
             getWeeklyRewardMultiplier(int256(_elapsedWeeks - _termWeeks) - 1);
     }
 
     /// @notice Get adjusted mint amount based on reward multiplier
     /// @param _originalAmount The original mint amount without adjustment
     /// @param _termSeconds The term limit in seconds
-    function getAdjustedMintAmount(uint256 _originalAmount, uint256 _termSeconds)
-        internal
-        view
-        virtual
-        returns (uint256)
-    {
+    function getAdjustedMintAmount(
+        uint256 _originalAmount,
+        uint256 _termSeconds
+    ) internal view virtual returns (uint256) {
         uint256 elapsedWeeks = getElapsedWeeks();
         uint256 termWeeks = _termSeconds / SECONDS_IN_WEEK;
-        return (_originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) / 1_000_000_000;
+        return
+            (_originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) /
+            1_000_000_000;
     }
 
     ////////////////// STATE CHANGING FUNCTIONS
@@ -161,7 +161,7 @@ contract XENWalletManager is Ownable {
     }
 
     function batchCreateWallets(uint256 amount, uint256 term) external {
-        require(term >= 50, "Too short term");
+        require(term >= MIN_TOKEN_MINT_TERM, "Too short term");
 
         uint256 existing = unmintedWallets[msg.sender].length;
         for (uint256 id = 0; id < amount; id++) {
@@ -515,255 +515,5 @@ contract XENWalletManager is Ownable {
         weeklyRewardMultiplier[247] = 2051728348;
         weeklyRewardMultiplier[248] = 2051728654;
         weeklyRewardMultiplier[249] = 2051728946;
-        weeklyRewardMultiplier[250] = 2051729222;
-        weeklyRewardMultiplier[251] = 2051729485;
-        weeklyRewardMultiplier[252] = 2051729735;
-        weeklyRewardMultiplier[253] = 2051729972;
-        weeklyRewardMultiplier[254] = 2051730198;
-        weeklyRewardMultiplier[255] = 2051730412;
-        weeklyRewardMultiplier[256] = 2051730615;
-        weeklyRewardMultiplier[257] = 2051730808;
-        weeklyRewardMultiplier[258] = 2051730992;
-        weeklyRewardMultiplier[259] = 2051731166;
-        weeklyRewardMultiplier[260] = 2051731332;
-        weeklyRewardMultiplier[261] = 2051731489;
-        weeklyRewardMultiplier[262] = 2051731639;
-        weeklyRewardMultiplier[263] = 2051731781;
-        weeklyRewardMultiplier[264] = 2051731916;
-        weeklyRewardMultiplier[265] = 2051732044;
-        weeklyRewardMultiplier[266] = 2051732166;
-        weeklyRewardMultiplier[267] = 2051732281;
-        weeklyRewardMultiplier[268] = 2051732391;
-        weeklyRewardMultiplier[269] = 2051732496;
-        weeklyRewardMultiplier[270] = 2051732595;
-        weeklyRewardMultiplier[271] = 2051732689;
-        weeklyRewardMultiplier[272] = 2051732779;
-        weeklyRewardMultiplier[273] = 2051732864;
-        weeklyRewardMultiplier[274] = 2051732944;
-        weeklyRewardMultiplier[275] = 2051733021;
-        weeklyRewardMultiplier[276] = 2051733094;
-        weeklyRewardMultiplier[277] = 2051733163;
-        weeklyRewardMultiplier[278] = 2051733229;
-        weeklyRewardMultiplier[279] = 2051733292;
-        weeklyRewardMultiplier[280] = 2051733351;
-        weeklyRewardMultiplier[281] = 2051733408;
-        weeklyRewardMultiplier[282] = 2051733461;
-        weeklyRewardMultiplier[283] = 2051733512;
-        weeklyRewardMultiplier[284] = 2051733560;
-        weeklyRewardMultiplier[285] = 2051733606;
-        weeklyRewardMultiplier[286] = 2051733650;
-        weeklyRewardMultiplier[287] = 2051733692;
-        weeklyRewardMultiplier[288] = 2051733731;
-        weeklyRewardMultiplier[289] = 2051733768;
-        weeklyRewardMultiplier[290] = 2051733804;
-        weeklyRewardMultiplier[291] = 2051733838;
-        weeklyRewardMultiplier[292] = 2051733870;
-        weeklyRewardMultiplier[293] = 2051733900;
-        weeklyRewardMultiplier[294] = 2051733929;
-        weeklyRewardMultiplier[295] = 2051733957;
-        weeklyRewardMultiplier[296] = 2051733983;
-        weeklyRewardMultiplier[297] = 2051734008;
-        weeklyRewardMultiplier[298] = 2051734031;
-        weeklyRewardMultiplier[299] = 2051734054;
-        weeklyRewardMultiplier[300] = 2051734075;
-        weeklyRewardMultiplier[301] = 2051734095;
-        weeklyRewardMultiplier[302] = 2051734114;
-        weeklyRewardMultiplier[303] = 2051734133;
-        weeklyRewardMultiplier[304] = 2051734150;
-        weeklyRewardMultiplier[305] = 2051734166;
-        weeklyRewardMultiplier[306] = 2051734182;
-        weeklyRewardMultiplier[307] = 2051734197;
-        weeklyRewardMultiplier[308] = 2051734211;
-        weeklyRewardMultiplier[309] = 2051734225;
-        weeklyRewardMultiplier[310] = 2051734237;
-        weeklyRewardMultiplier[311] = 2051734249;
-        weeklyRewardMultiplier[312] = 2051734261;
-        weeklyRewardMultiplier[313] = 2051734272;
-        weeklyRewardMultiplier[314] = 2051734282;
-        weeklyRewardMultiplier[315] = 2051734292;
-        weeklyRewardMultiplier[316] = 2051734301;
-        weeklyRewardMultiplier[317] = 2051734310;
-        weeklyRewardMultiplier[318] = 2051734319;
-        weeklyRewardMultiplier[319] = 2051734327;
-        weeklyRewardMultiplier[320] = 2051734334;
-        weeklyRewardMultiplier[321] = 2051734342;
-        weeklyRewardMultiplier[322] = 2051734349;
-        weeklyRewardMultiplier[323] = 2051734355;
-        weeklyRewardMultiplier[324] = 2051734361;
-        weeklyRewardMultiplier[325] = 2051734367;
-        weeklyRewardMultiplier[326] = 2051734373;
-        weeklyRewardMultiplier[327] = 2051734378;
-        weeklyRewardMultiplier[328] = 2051734383;
-        weeklyRewardMultiplier[329] = 2051734388;
-        weeklyRewardMultiplier[330] = 2051734393;
-        weeklyRewardMultiplier[331] = 2051734397;
-        weeklyRewardMultiplier[332] = 2051734401;
-        weeklyRewardMultiplier[333] = 2051734405;
-        weeklyRewardMultiplier[334] = 2051734409;
-        weeklyRewardMultiplier[335] = 2051734412;
-        weeklyRewardMultiplier[336] = 2051734416;
-        weeklyRewardMultiplier[337] = 2051734419;
-        weeklyRewardMultiplier[338] = 2051734422;
-        weeklyRewardMultiplier[339] = 2051734425;
-        weeklyRewardMultiplier[340] = 2051734428;
-        weeklyRewardMultiplier[341] = 2051734430;
-        weeklyRewardMultiplier[342] = 2051734433;
-        weeklyRewardMultiplier[343] = 2051734435;
-        weeklyRewardMultiplier[344] = 2051734437;
-        weeklyRewardMultiplier[345] = 2051734439;
-        weeklyRewardMultiplier[346] = 2051734441;
-        weeklyRewardMultiplier[347] = 2051734443;
-        weeklyRewardMultiplier[348] = 2051734445;
-        weeklyRewardMultiplier[349] = 2051734447;
-        weeklyRewardMultiplier[350] = 2051734448;
-        weeklyRewardMultiplier[351] = 2051734450;
-        weeklyRewardMultiplier[352] = 2051734451;
-        weeklyRewardMultiplier[353] = 2051734453;
-        weeklyRewardMultiplier[354] = 2051734454;
-        weeklyRewardMultiplier[355] = 2051734455;
-        weeklyRewardMultiplier[356] = 2051734457;
-        weeklyRewardMultiplier[357] = 2051734458;
-        weeklyRewardMultiplier[358] = 2051734459;
-        weeklyRewardMultiplier[359] = 2051734460;
-        weeklyRewardMultiplier[360] = 2051734461;
-        weeklyRewardMultiplier[361] = 2051734462;
-        weeklyRewardMultiplier[362] = 2051734463;
-        weeklyRewardMultiplier[363] = 2051734464;
-        weeklyRewardMultiplier[364] = 2051734464;
-        weeklyRewardMultiplier[365] = 2051734465;
-        weeklyRewardMultiplier[366] = 2051734466;
-        weeklyRewardMultiplier[367] = 2051734466;
-        weeklyRewardMultiplier[368] = 2051734467;
-        weeklyRewardMultiplier[369] = 2051734468;
-        weeklyRewardMultiplier[370] = 2051734468;
-        weeklyRewardMultiplier[371] = 2051734469;
-        weeklyRewardMultiplier[372] = 2051734469;
-        weeklyRewardMultiplier[373] = 2051734470;
-        weeklyRewardMultiplier[374] = 2051734470;
-        weeklyRewardMultiplier[375] = 2051734471;
-        weeklyRewardMultiplier[376] = 2051734471;
-        weeklyRewardMultiplier[377] = 2051734472;
-        weeklyRewardMultiplier[378] = 2051734472;
-        weeklyRewardMultiplier[379] = 2051734472;
-        weeklyRewardMultiplier[380] = 2051734473;
-        weeklyRewardMultiplier[381] = 2051734473;
-        weeklyRewardMultiplier[382] = 2051734473;
-        weeklyRewardMultiplier[383] = 2051734474;
-        weeklyRewardMultiplier[384] = 2051734474;
-        weeklyRewardMultiplier[385] = 2051734474;
-        weeklyRewardMultiplier[386] = 2051734475;
-        weeklyRewardMultiplier[387] = 2051734475;
-        weeklyRewardMultiplier[388] = 2051734475;
-        weeklyRewardMultiplier[389] = 2051734475;
-        weeklyRewardMultiplier[390] = 2051734476;
-        weeklyRewardMultiplier[391] = 2051734476;
-        weeklyRewardMultiplier[392] = 2051734476;
-        weeklyRewardMultiplier[393] = 2051734476;
-        weeklyRewardMultiplier[394] = 2051734476;
-        weeklyRewardMultiplier[395] = 2051734476;
-        weeklyRewardMultiplier[396] = 2051734477;
-        weeklyRewardMultiplier[397] = 2051734477;
-        weeklyRewardMultiplier[398] = 2051734477;
-        weeklyRewardMultiplier[399] = 2051734477;
-        weeklyRewardMultiplier[400] = 2051734477;
-        weeklyRewardMultiplier[401] = 2051734477;
-        weeklyRewardMultiplier[402] = 2051734477;
-        weeklyRewardMultiplier[403] = 2051734477;
-        weeklyRewardMultiplier[404] = 2051734478;
-        weeklyRewardMultiplier[405] = 2051734478;
-        weeklyRewardMultiplier[406] = 2051734478;
-        weeklyRewardMultiplier[407] = 2051734478;
-        weeklyRewardMultiplier[408] = 2051734478;
-        weeklyRewardMultiplier[409] = 2051734478;
-        weeklyRewardMultiplier[410] = 2051734478;
-        weeklyRewardMultiplier[411] = 2051734478;
-        weeklyRewardMultiplier[412] = 2051734478;
-        weeklyRewardMultiplier[413] = 2051734478;
-        weeklyRewardMultiplier[414] = 2051734478;
-        weeklyRewardMultiplier[415] = 2051734478;
-        weeklyRewardMultiplier[416] = 2051734478;
-        weeklyRewardMultiplier[417] = 2051734478;
-        weeklyRewardMultiplier[418] = 2051734479;
-        weeklyRewardMultiplier[419] = 2051734479;
-        weeklyRewardMultiplier[420] = 2051734479;
-        weeklyRewardMultiplier[421] = 2051734479;
-        weeklyRewardMultiplier[422] = 2051734479;
-        weeklyRewardMultiplier[423] = 2051734479;
-        weeklyRewardMultiplier[424] = 2051734479;
-        weeklyRewardMultiplier[425] = 2051734479;
-        weeklyRewardMultiplier[426] = 2051734479;
-        weeklyRewardMultiplier[427] = 2051734479;
-        weeklyRewardMultiplier[428] = 2051734479;
-        weeklyRewardMultiplier[429] = 2051734479;
-        weeklyRewardMultiplier[430] = 2051734479;
-        weeklyRewardMultiplier[431] = 2051734479;
-        weeklyRewardMultiplier[432] = 2051734479;
-        weeklyRewardMultiplier[433] = 2051734479;
-        weeklyRewardMultiplier[434] = 2051734479;
-        weeklyRewardMultiplier[435] = 2051734479;
-        weeklyRewardMultiplier[436] = 2051734479;
-        weeklyRewardMultiplier[437] = 2051734479;
-        weeklyRewardMultiplier[438] = 2051734479;
-        weeklyRewardMultiplier[439] = 2051734479;
-        weeklyRewardMultiplier[440] = 2051734479;
-        weeklyRewardMultiplier[441] = 2051734479;
-        weeklyRewardMultiplier[442] = 2051734479;
-        weeklyRewardMultiplier[443] = 2051734479;
-        weeklyRewardMultiplier[444] = 2051734479;
-        weeklyRewardMultiplier[445] = 2051734479;
-        weeklyRewardMultiplier[446] = 2051734479;
-        weeklyRewardMultiplier[447] = 2051734479;
-        weeklyRewardMultiplier[448] = 2051734479;
-        weeklyRewardMultiplier[449] = 2051734479;
-        weeklyRewardMultiplier[450] = 2051734479;
-        weeklyRewardMultiplier[451] = 2051734479;
-        weeklyRewardMultiplier[452] = 2051734479;
-        weeklyRewardMultiplier[453] = 2051734479;
-        weeklyRewardMultiplier[454] = 2051734479;
-        weeklyRewardMultiplier[455] = 2051734479;
-        weeklyRewardMultiplier[456] = 2051734479;
-        weeklyRewardMultiplier[457] = 2051734479;
-        weeklyRewardMultiplier[458] = 2051734479;
-        weeklyRewardMultiplier[459] = 2051734479;
-        weeklyRewardMultiplier[460] = 2051734479;
-        weeklyRewardMultiplier[461] = 2051734479;
-        weeklyRewardMultiplier[462] = 2051734479;
-        weeklyRewardMultiplier[463] = 2051734479;
-        weeklyRewardMultiplier[464] = 2051734479;
-        weeklyRewardMultiplier[465] = 2051734479;
-        weeklyRewardMultiplier[466] = 2051734479;
-        weeklyRewardMultiplier[467] = 2051734479;
-        weeklyRewardMultiplier[468] = 2051734479;
-        weeklyRewardMultiplier[469] = 2051734479;
-        weeklyRewardMultiplier[470] = 2051734479;
-        weeklyRewardMultiplier[471] = 2051734479;
-        weeklyRewardMultiplier[472] = 2051734479;
-        weeklyRewardMultiplier[473] = 2051734479;
-        weeklyRewardMultiplier[474] = 2051734479;
-        weeklyRewardMultiplier[475] = 2051734479;
-        weeklyRewardMultiplier[476] = 2051734479;
-        weeklyRewardMultiplier[477] = 2051734479;
-        weeklyRewardMultiplier[478] = 2051734479;
-        weeklyRewardMultiplier[479] = 2051734479;
-        weeklyRewardMultiplier[480] = 2051734479;
-        weeklyRewardMultiplier[481] = 2051734479;
-        weeklyRewardMultiplier[482] = 2051734479;
-        weeklyRewardMultiplier[483] = 2051734479;
-        weeklyRewardMultiplier[484] = 2051734479;
-        weeklyRewardMultiplier[485] = 2051734479;
-        weeklyRewardMultiplier[486] = 2051734479;
-        weeklyRewardMultiplier[487] = 2051734479;
-        weeklyRewardMultiplier[488] = 2051734479;
-        weeklyRewardMultiplier[489] = 2051734479;
-        weeklyRewardMultiplier[490] = 2051734479;
-        weeklyRewardMultiplier[491] = 2051734479;
-        weeklyRewardMultiplier[492] = 2051734479;
-        weeklyRewardMultiplier[493] = 2051734479;
-        weeklyRewardMultiplier[494] = 2051734479;
-        weeklyRewardMultiplier[495] = 2051734479;
-        weeklyRewardMultiplier[496] = 2051734479;
-        weeklyRewardMultiplier[497] = 2051734479;
-        weeklyRewardMultiplier[498] = 2051734479;
-        weeklyRewardMultiplier[499] = 2051734479;
     }
 }

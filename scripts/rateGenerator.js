@@ -1,3 +1,5 @@
+// Used to calculate weeklyRewardMultiplier
+
 const precisionMultiplier = 10 ** 9;
 
 const calcRate = (_precisionMultiplier, _elapsedWeeks) => {
@@ -14,7 +16,7 @@ const calcRate = (_precisionMultiplier, _elapsedWeeks) => {
 
 const rates = [];
 
-for (let i = 0; i < 500; i++) {
+for (let i = 0; i < 250; i++) {
   const rewardMultiplier = Math.floor(calcRate(precisionMultiplier, i));
   rates.push(rewardMultiplier);
   console.log(`weeklyRewardMultiplier[${i}] = ${rewardMultiplier};`)
