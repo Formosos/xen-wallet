@@ -4,6 +4,8 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
+// import "./XEN/ABDKMath64x64.sol";
+// import "./XEN/Math.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
@@ -63,15 +65,22 @@ contract XENWalletManager is Ownable {
         return (block.timestamp - deployTimestamp) / SECONDS_IN_WEEK;
     }
 
-    /// @dev Get number of active mint wallets
-    function getActiveWallets() external view returns (uint256) {
-        return activeWallets;
-    }
+    // /// @dev Get estimated YEN mint reward
+    // /// @dev The reward is calculated by mutliplying the XEN reward with the multiplier
+    // function getYENMintEstimate(uint256 globalRank, IXENCrypto.MintInfo memory mintInfo) external view returns (uint256) {
 
-    /// @dev Get number of wallets that have batch minted
-    function getTotalWallets() external view returns (uint256) {
-        return totalWallets;
-    }
+    //     uint256 rankDelta = Math.max(IXENCrypto.globalRank - mintInfo.rank, 2);
+    //     uint256 EAA = (1_000 + mintInfo.eaaRate);
+
+    //     uint256 XENReward = IXENCrypto.getGrossReward(rankDelta, mintInfo.amplifier, mintInfo.term, EAA);
+    //     uint256 maturityWeeks = (mintInfo.maturityTs - deployTimestamp) / SECONDS_IN_WEEK;
+    //     uint256 termWeeks = mintInfo.term / SECONDS_IN_WEEK;
+
+    //     uint256 YENRewardMultiplier = getRewardMultiplier(maturityWeeks, termWeeks);
+    //     uint256 YENReward = YENRewardMultiplier * XENReward;
+
+    //     return YENReward;
+    // }
 
     /// @dev Get wallet count for a wallet owner
     function getWalletCount(address _owner) public view returns (uint256) {
@@ -106,16 +115,26 @@ contract XENWalletManager is Ownable {
 
     /// @notice Limits range for reward multiplier
     /// @return Returns weekly reward multiplier at specific week
-    function getWeeklyRewardMultiplier(int256 _index)
-        internal
+    function getCumulativeWeeklyRewardMultiplier(int256 _index)
+        public
         view
-        virtual
         returns (uint256)
     {
         if (_index < 0) return 0;
         if (_index >= int256(weeklyRewardMultiplier.length))
             return weeklyRewardMultiplier[249];
         return weeklyRewardMultiplier[uint256(_index)];
+    }
+
+    /// @notice Get weekly reward multiplier
+    function getWeeklyRewardMultiplier(int256 _index)
+        external
+        view
+        returns (uint256)
+    {
+        return 
+            getCumulativeWeeklyRewardMultiplier(_index) -
+            getCumulativeWeeklyRewardMultiplier(_index - 1);
     }
 
     /// @notice Calculates reward multiplier
@@ -129,8 +148,8 @@ contract XENWalletManager is Ownable {
     {
         require(_elapsedWeeks >= _termWeeks, "Incorrect term format");
         return
-            getWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
-            getWeeklyRewardMultiplier(int256(_elapsedWeeks - _termWeeks) - 1);
+            getCumulativeWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
+            getCumulativeWeeklyRewardMultiplier(int256(_elapsedWeeks - _termWeeks) - 1);
     }
 
     /// @notice Get adjusted mint amount based on reward multiplier

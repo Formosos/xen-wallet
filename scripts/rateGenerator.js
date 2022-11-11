@@ -9,16 +9,19 @@ const calcRate = (_precisionMultiplier, _elapsedWeeks) => {
   let _cumulative = _current;
   for (let i = 0; i < _elapsedWeeks; ++i) {
     _current = (_current * 95) / 100;
-    _cumulative += _current;
+    _cumulative = _current;
   }
   return _cumulative;
 };
 
 const rates = [];
 
-for (let i = 0; i < 250; i++) {
-  const rewardMultiplier = Math.floor(calcRate(precisionMultiplier, i));
-  rates.push(rewardMultiplier);
-  console.log(`weeklyRewardMultiplier[${i}] = ${rewardMultiplier};`)
+for (let i = 0; i < 50; i++) {
+
+  console.log(`${i} week -> ${calcRate(1, i)}`);
+
+  // const rewardMultiplier = Math.floor(calcRate(precisionMultiplier, i));
+  // rates.push(rewardMultiplier);
+  // console.log(`weeklyRewardMultiplier[${i}] = ${rewardMultiplier};`)
 }
 
