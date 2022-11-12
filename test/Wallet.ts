@@ -455,17 +455,14 @@ describe("Wallet", function () {
       expect(adjusted).to.equal(expected);
     });
 
-    it("a week after precalculated values returns the same as the last precalculated", async function () {
+    it("a week after precalculated values the reward becomes zero", async function () {
       const currentWeek = 260;
       await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
       const adjusted = await manager.getAdjustedMint(
         original,
         2 * secondsInWeek
       );
-      // FIXME
-      const expected = Math.floor(
-        (original * (884707718 - 690571906)) / 1000000000
-      );
+      const expected = 0;
       expect(adjusted).to.equal(expected);
     });
   });
