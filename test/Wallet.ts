@@ -417,6 +417,27 @@ describe("Wallet", function () {
     });
   });
 
+  describe("Weekly reward multiplier calculation", function () {
+
+    it("week 1", async function () {
+      const actual = await manager.getWeeklyRewardMultiplier(0);
+      const expected = 102586724;
+      expect(expected).to.equal(actual);
+    });
+
+    it("week 10", async function () {
+      const actual = await manager.getWeeklyRewardMultiplier(10);
+      const expected = 884707718 - 823285257;
+      expect(expected).to.equal(actual);
+    });
+
+    it("week 200", async function () {
+      const actual = await manager.getWeeklyRewardMultiplier(200);
+      const expected = 2051666157 - 2051662561;
+      expect(expected).to.equal(actual);
+    });
+  });
+
   describe("Mint amount calculations", function () {
     let original: number;
     beforeEach(async function () {
