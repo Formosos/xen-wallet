@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract YENCrypto is ERC20 {
     address public minter;
-    uint256 internal constant LAUNCH_TIME = 1_666_521_063;
-    uint256 internal constant LAUNCH_PHASE = 1_000_000;
 
     constructor(address _minter) ERC20("YEN", "YEN") {
         minter = _minter;

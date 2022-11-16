@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.10;
 
-// Used for simulating regular contract deploys
+// Used for extending the default manager for unit tests
 
 import "../XENWalletManager.sol";
 
@@ -16,7 +16,11 @@ contract MockManager is XENWalletManager {
         return implementation;
     }
 
-    function getAdjustedMint(uint256 original, uint256 term) public view returns (uint256) {
+    function getAdjustedMint(uint256 original, uint256 term)
+        public
+        view
+        returns (uint256)
+    {
         return super.getAdjustedMintAmount(original, term);
     }
 }
