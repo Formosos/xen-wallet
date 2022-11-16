@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-// import "./XEN/ABDKMath64x64.sol";
-// import "./XEN/Math.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
@@ -132,7 +130,7 @@ contract XENWalletManager is Ownable {
         view
         returns (uint256)
     {
-        return 
+        return
             getCumulativeWeeklyRewardMultiplier(_index) -
             getCumulativeWeeklyRewardMultiplier(_index - 1);
     }
@@ -149,7 +147,9 @@ contract XENWalletManager is Ownable {
         require(_elapsedWeeks >= _termWeeks, "Incorrect term format");
         return
             getCumulativeWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
-            getCumulativeWeeklyRewardMultiplier(int256(_elapsedWeeks - _termWeeks) - 1);
+            getCumulativeWeeklyRewardMultiplier(
+                int256(_elapsedWeeks - _termWeeks) - 1
+            );
     }
 
     /// @notice Get adjusted mint amount based on reward multiplier

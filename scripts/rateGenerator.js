@@ -1,4 +1,4 @@
-// Used to calculate weeklyRewardMultiplier
+// Used to calculate cumulativeWeeklyRewardMultiplier
 
 const precisionMultiplier = 10 ** 9;
 
