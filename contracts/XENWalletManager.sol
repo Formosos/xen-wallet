@@ -15,7 +15,7 @@ contract XENWalletManager is Ownable {
     address internal immutable implementation;
     address public immutable XENCrypto;
     uint256 public immutable deployTimestamp;
-    YENCrypto public immutable ownToken;
+    YENCrypto public immutable yenCrypto;
 
     uint256 public totalWallets;
     uint256 public activeWallets;
@@ -38,68 +38,61 @@ contract XENWalletManager is Ownable {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
         feeReceiver = feeAddress;
-        ownToken = new YENCrypto(address(this));
+        yenCrypto = new YENCrypto(address(this));
         deployTimestamp = block.timestamp;
 
         populateRates();
     }
 
-    //////////////////  VIEWS
+    // PUBLIC CONVENIENCE GETTERS
 
-    function getSalt(uint256 _id) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(msg.sender, _id));
+    /**
+     * @dev generate a unique salt based on message sender and id value
+     */
+    function getSalt(uint256 id) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(msg.sender, id));
     }
 
-    function getDeterministicAddress(bytes32 salt)
-        public
-        view
-        returns (address)
-    {
+    /**
+     * @dev derive a deterministic address based on a salt value
+     */
+    function getDeterministicAddress(bytes32 salt) public view returns (address) {
         return implementation.predictDeterministicAddress(salt);
     }
 
-    /// @notice Number of elapsed weeks after deployment
+    /**
+     * @dev calculates elapsed number of weeks after contract deployment
+     */
     function getElapsedWeeks() public view returns (uint256) {
         return (block.timestamp - deployTimestamp) / SECONDS_IN_WEEK;
     }
 
-    // /// @dev Get estimated YEN mint reward
-    // /// @dev The reward is calculated by mutliplying the XEN reward with the multiplier
-    // function getYENMintEstimate(uint256 globalRank, IXENCrypto.MintInfo memory mintInfo) external view returns (uint256) {
-
-    //     uint256 rankDelta = Math.max(IXENCrypto.globalRank - mintInfo.rank, 2);
-    //     uint256 EAA = (1_000 + mintInfo.eaaRate);
-
-    //     uint256 XENReward = IXENCrypto.getGrossReward(rankDelta, mintInfo.amplifier, mintInfo.term, EAA);
-    //     uint256 maturityWeeks = (mintInfo.maturityTs - deployTimestamp) / SECONDS_IN_WEEK;
-    //     uint256 termWeeks = mintInfo.term / SECONDS_IN_WEEK;
-
-    //     uint256 YENRewardMultiplier = getRewardMultiplier(maturityWeeks, termWeeks);
-    //     uint256 YENReward = YENRewardMultiplier * XENReward;
-
-    //     return YENReward;
-    // }
-
-    /// @dev Get wallet count for a wallet owner
-    function getWalletCount(address _owner) public view returns (uint256) {
-        return unmintedWallets[_owner].length;
+    /**
+     * @dev returns wallet count associated with wallet owner
+     */
+    function getWalletCount(address owner) public view returns (uint256) {
+        return unmintedWallets[owner].length;
     }
 
-    /// @dev Get wallets using pagination approach
+    /**
+     * @dev returns wallet addresses based on pagination approach
+     */
     function getWallets(
-        address _owner,
-        uint256 _startId,
-        uint256 _endId
+        address owner,
+        uint256 startId,
+        uint256 endId
     ) external view returns (address[] memory) {
-        uint256 size = _endId - _startId + 1;
+        uint256 size = endId - startId + 1;
         address[] memory wallets = new address[](size);
-        for (uint256 id = _startId; id <= _endId; id++) {
-            wallets[id - _startId] = unmintedWallets[_owner][id];
+        for (uint256 id = startId; id <= endId; id++) {
+            wallets[id - startId] = unmintedWallets[owner][id];
         }
         return wallets;
     }
 
-    /// @notice Mint infos for an array of addresses
+    /**
+     * @dev returns Mint objects for an array of addresses
+     */
     function getUserInfos(address[] calldata owners)
         external
         view
@@ -111,66 +104,74 @@ contract XENWalletManager is Ownable {
         }
     }
 
-    /// @notice Limits range for reward multiplier
-    /// @return Returns weekly reward multiplier at specific week
-    function getCumulativeWeeklyRewardMultiplier(int256 _index)
+    /**
+     * @dev returns cumulative weekly reward multiplier at a specific week
+     */
+    function getCumulativeWeeklyRewardMultiplier(int256 index)
         public
         view
         returns (uint256)
     {
-        if (_index < 0) return 0;
-        if (_index >= int256(cumulativeWeeklyRewardMultiplier.length))
+        if (index < 0) return 0;
+        if (index >= int256(cumulativeWeeklyRewardMultiplier.length))
             return cumulativeWeeklyRewardMultiplier[249];
-        return cumulativeWeeklyRewardMultiplier[uint256(_index)];
+        return cumulativeWeeklyRewardMultiplier[uint256(index)];
     }
 
-    /// @notice Get weekly reward multiplier
-    function getWeeklyRewardMultiplier(int256 _index)
+    /**
+     * @dev returns weekly reward multiplier
+     */
+    function getWeeklyRewardMultiplier(int256 index)
         external
         view
         returns (uint256)
     {
         return
-            getCumulativeWeeklyRewardMultiplier(_index) -
-            getCumulativeWeeklyRewardMultiplier(_index - 1);
+            getCumulativeWeeklyRewardMultiplier(index) -
+            getCumulativeWeeklyRewardMultiplier(index - 1);
     }
 
-    /// @notice Calculates reward multiplier
-    /// @dev Exposes reward multiplier to frontend
-    /// @param _elapsedWeeks The number of weeks that has elapsed
-    /// @param _termWeeks The term limit in weeks
-    function getRewardMultiplier(uint256 _elapsedWeeks, uint256 _termWeeks)
+    /**
+     * @dev calculates reward multiplier
+     * @param finalWeek defines the the number of weeks that has elapsed
+     * @param termWeeks defines the term limit in weeks
+     */
+    function getRewardMultiplier(uint256 finalWeek, uint256 termWeeks)
         public
         view
         returns (uint256)
     {
-        require(_elapsedWeeks >= _termWeeks, "Incorrect term format");
+        require(finalWeek >= termWeeks, "Incorrect term format");
         return
-            getCumulativeWeeklyRewardMultiplier(int256(_elapsedWeeks)) -
+            getCumulativeWeeklyRewardMultiplier(int256(finalWeek)) -
             getCumulativeWeeklyRewardMultiplier(
-                int256(_elapsedWeeks - _termWeeks) - 1
+                int256(finalWeek - termWeeks) - 1
             );
     }
 
-    /// @notice Get adjusted mint amount based on reward multiplier
-    /// @param _originalAmount The original mint amount without adjustment
-    /// @param _termSeconds The term limit in seconds
+    /**
+     * @dev calculates adjusted mint amount based on reward multiplier
+     * @param originalAmount defines the original amount without adjustment
+     * @param termSeconds defines the term limit in seconds
+     */
     function getAdjustedMintAmount(
-        uint256 _originalAmount,
-        uint256 _termSeconds
+        uint256 originalAmount,
+        uint256 termSeconds
     ) internal view virtual returns (uint256) {
         uint256 elapsedWeeks = getElapsedWeeks();
-        uint256 termWeeks = _termSeconds / SECONDS_IN_WEEK;
+        uint256 termWeeks = termSeconds / SECONDS_IN_WEEK;
         return
-            (_originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) /
+            (originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) /
             1_000_000_000;
     }
 
-    ////////////////// STATE CHANGING FUNCTIONS
+    // STATE CHANGING FUNCTIONS
 
-    // Create wallets
-    function createWallet(uint256 _id, uint256 term) internal {
-        bytes32 salt = getSalt(_id);
+    /**
+     * @dev create wallet using a specific index and term
+     */
+    function createWallet(uint256 id, uint256 term) internal {
+        bytes32 salt = getSalt(id);
         XENWallet clone = XENWallet(implementation.cloneDeterministic(salt));
 
         clone.initialize(XENCrypto, address(this));
@@ -191,17 +192,19 @@ contract XENWalletManager is Ownable {
         activeWallets += amount;
     }
 
-    // Claims rewards and sends them to the wallet owner
-    function batchClaimAndTransferMintReward(uint256 _startId, uint256 _endId)
+    /**
+     * @dev claims rewards and sends them to the wallet owner
+     */
+    function batchClaimAndTransferMintReward(uint256 startId, uint256 endId)
         external
     {
-        require(_endId >= _startId, "Forward ordering");
+        require(endId >= startId, "Forward ordering");
 
         uint256 claimed = 0;
         uint256 averageTerm = 0;
-        uint256 walletRange = _endId - _startId + 1;
+        uint256 walletRange = endId - startId + 1;
 
-        for (uint256 id = _startId; id <= _endId; id++) {
+        for (uint256 id = startId; id <= endId; id++) {
             address proxy = unmintedWallets[msg.sender][id];
 
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
@@ -217,25 +220,25 @@ contract XENWalletManager is Ownable {
         if (claimed > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(claimed, averageTerm);
             uint256 fee = (toBeMinted * MINT_FEE) / 10_000; // reduce minting fee
-            ownToken.mint(msg.sender, toBeMinted - fee);
-            ownToken.mint(feeReceiver, fee);
+            yenCrypto.mint(msg.sender, toBeMinted - fee);
+            yenCrypto.mint(feeReceiver, fee);
         }
     }
 
     function batchClaimMintRewardRescue(
-        address walletOwner,
-        uint256 _startId,
-        uint256 _endId
+        address owner,
+        uint256 startId,
+        uint256 endId
     ) external onlyOwner {
-        require(_endId >= _startId, "Forward ordering");
+        require(endId >= startId, "Forward ordering");
 
         IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
         uint256 rescued = 0;
         uint256 averageTerm = 0;
-        uint256 walletRange = _endId - _startId + 1;
+        uint256 walletRange = endId - startId + 1;
 
-        for (uint256 id = _startId; id <= _endId; id++) {
-            address proxy = unmintedWallets[walletOwner][id];
+        for (uint256 id = startId; id <= endId; id++) {
+            address proxy = unmintedWallets[owner][id];
 
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
             averageTerm += info.term;
@@ -244,7 +247,7 @@ contract XENWalletManager is Ownable {
                 rescued += XENWallet(proxy).claimAndTransferMintReward(
                     address(this)
                 );
-                unmintedWallets[walletOwner][id] = address(0x0);
+                unmintedWallets[owner][id] = address(0x0);
             }
         }
 
@@ -257,12 +260,12 @@ contract XENWalletManager is Ownable {
             uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
             uint256 mintFee = (toBeMinted * (RESCUE_FEE + MINT_FEE)) / 10_000;
 
-            // Transfer XEN and own token
+            // Mint YEN tokens
+            yenCrypto.mint(owner, toBeMinted - mintFee);
+            yenCrypto.mint(feeReceiver, mintFee);
 
-            ownToken.mint(walletOwner, toBeMinted - mintFee);
-            ownToken.mint(feeReceiver, mintFee);
-
-            xenCrypto.transfer(walletOwner, rescued - xenFee);
+            // Transfer XEN tokens
+            xenCrypto.transfer(owner, rescued - xenFee);
             xenCrypto.transfer(feeReceiver, xenFee);
         }
     }

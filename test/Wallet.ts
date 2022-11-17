@@ -42,28 +42,28 @@ describe("Wallet", function () {
       _rescuer.address
     );
 
-    const OwnToken = await _manager.ownToken();
-    const _ownToken = await ethers.getContractAt("YENCrypto", OwnToken);
+    const YEN = await _manager.yenCrypto();
+    const _yen = await ethers.getContractAt("YENCrypto", YEN);
 
-    return { _xen, _wallet, _manager, _ownToken, _deployer, _rescuer, _user2 };
+    return { _xen, _wallet, _manager, _yen, _deployer, _rescuer, _user2 };
   }
 
   let xen: XENCrypto,
     wallet: XENWallet,
     manager: MockManager,
-    ownToken: YENCrypto,
+    yen: YENCrypto,
     deployer: SignerWithAddress,
     rescuer: SignerWithAddress,
     user2: SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _manager, _ownToken, _deployer, _rescuer, _user2 } =
+    const { _xen, _wallet, _manager, _yen, _deployer, _rescuer, _user2 } =
       await loadFixture(deployWalletFixture);
 
     xen = _xen;
     wallet = _wallet;
     manager = _manager;
-    ownToken = _ownToken;
+    yen = _yen;
     deployer = _deployer;
     rescuer = _rescuer;
     user2 = _user2;
@@ -80,7 +80,7 @@ describe("Wallet", function () {
       expect(factoryXen).to.equal(xen.address);
       expect(factoryDeployer).to.equal(deployer.address);
       expect(factoryImplementation).to.equal(wallet.address);
-      expect(ownToken).to.not.empty;
+      expect(yen).to.not.empty;
     });
   });
 
@@ -292,9 +292,9 @@ describe("Wallet", function () {
       await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
       const xenBalanceOwner = await xen.balanceOf(deployer.address);
-      const ownBalanceOwner = await ownToken.balanceOf(deployer.address);
+      const ownBalanceOwner = await yen.balanceOf(deployer.address);
       const xenBalanceFeeReceiver = await xen.balanceOf(rescuer.address);
-      const ownBalanceFeeReceiver = await ownToken.balanceOf(rescuer.address);
+      const ownBalanceFeeReceiver = await yen.balanceOf(rescuer.address);
 
       expect(xenBalanceOwner).to.above(0);
       expect(ownBalanceOwner).to.above(0);
@@ -362,9 +362,9 @@ describe("Wallet", function () {
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
       const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
-      const ownBalanceRescuer = await ownToken.balanceOf(rescuer.address);
+      const ownBalanceRescuer = await yen.balanceOf(rescuer.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
-      const ownBalanceOwner = await ownToken.balanceOf(user2.address);
+      const ownBalanceOwner = await yen.balanceOf(user2.address);
 
       expect(xenBalanceRescuer).to.above(0);
       expect(ownBalanceRescuer).to.above(0);
@@ -386,9 +386,9 @@ describe("Wallet", function () {
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
       const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
-      const ownBalanceRescuer = await ownToken.balanceOf(rescuer.address);
+      const ownBalanceRescuer = await yen.balanceOf(rescuer.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
-      const ownBalanceOwner = await ownToken.balanceOf(user2.address);
+      const ownBalanceOwner = await yen.balanceOf(user2.address);
 
       expect(xenBalanceRescuer).to.equal(0);
       expect(ownBalanceRescuer).to.equal(0);
@@ -437,6 +437,8 @@ describe("Wallet", function () {
       expect(expected).to.equal(actual);
     });
   });
+
+  // TODO: Add more coverage for reward multiplier calculations
 
   describe("Mint amount calculations", function () {
     let original: number;

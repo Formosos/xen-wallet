@@ -13,6 +13,7 @@ The project's main contract is `XENWalletManager` which creates and manages XEN 
 #### Deployment arguments (constructor)
 
 The contract requires three arguments upon deployment:
+
 1. `xenCrypto`: The address of the already deployed XENCrypto contract to utilize
 1. `walletImplementation`: The address of the already deployed XENWallet reference implementation. One wallet needs to be deployed in advance so all subsequent wallets can copy that contract's code
 1. `rescueFeeAddress`: Address which receives rescue fees from the contract
@@ -24,6 +25,7 @@ Upon creation each wallet is entered into the XENCrypto contract (`claimRank`).
 In theory this function can create any number of wallets but the blockchain's block limits limit the amount to somewhere around 100-200 per transaction.
 
 Inputs:
+
 1. `amount`: How many wallets to create
 1. `term`: For how many days the wallet is to be locked in XENCrypto
 
@@ -34,9 +36,10 @@ This function can be called multiple times by the same caller so wallets can be 
 Returns the desired user's wallets.
 
 Inputs:
+
 1. `owner`: Return wallets for the given owner address
-1. `_startId`: Index of wallets to start from. The first wallet is index 0.
-1. `_endId`: Index of wallets to end to.
+1. `startId`: Index of wallets to start from. The first wallet is index 0.
+1. `endId`: Index of wallets to end to.
 
 The wallet indexes can be used to limit the amount of wallets returned. Trying to return too many wallets at a time will lead to issues.
 
@@ -45,6 +48,7 @@ The wallet indexes can be used to limit the amount of wallets returned. Trying t
 Returns XENCrypto contract's `MintInfo` data.
 
 Inputs:
+
 1. `owners`: An array of addresses for which to get the data.
 
 Trying to return too much data at a a time will lead to issues.
@@ -54,8 +58,9 @@ Trying to return too much data at a a time will lead to issues.
 Batch claims wallet rewards from the XENCrypto contract.
 
 Inputs:
-1. `_startId`: Starting index for the wallets to claim rewards for
-1. `_endId`: Ending index.
+
+1. `startId`: Starting index for the wallets to claim rewards for
+1. `endId`: Ending index.
 
 The caller has to make sure, in advance, that all the wallets to be claimed are valid for claiming. One failing claim will revert the whole transaction.
 
@@ -67,10 +72,11 @@ This function will also mint YEN tokens - more details about that are provided l
 
 Used to rescue wallets whose XEN rewards are about to expire.
 
-Inputs: 
-1. `walletOwner`: The owner whose wallets to rescue
-1. `_startId`: Starting index for the wallets to rescue
-1. `_endId`: Ending index.
+Inputs:
+
+1. `owner`: The owner whose wallets to rescue
+1. `startId`: Starting index for the wallets to rescue
+1. `endId`: Ending index.
 
 A rescue can only be performed if the wallet's maturity has been exceeded by at least 2 days.
 
@@ -82,9 +88,30 @@ This contract is usable only through the manager contract. It mostly contains fu
 
 ## Minting
 
-When user batch claims (function `batchClaimAndTransferMintReward`) rewards he may be minted also YEN tokens. YEN tokens are minted if the wallet's *term* has been more than 50 days.
+When user batch claims (function `batchClaimAndTransferMintReward`) rewards he may be minted also YEN tokens. YEN tokens are minted if the wallet's _term_ has been more than 50 days.
 
-YEN token minting has also a reward multiplier. TODO: is this needed? If yes, please write unit tests for it Philipp.
+YEN token minting has also a reward multiplier.
+
+#### `getCumulativeWeeklyRewardMultiplier`
+
+YEN is minted based on the amount of XEN claimed times a reward multiplier that is derived from our reward curve.
+
+The reward curve is defined by `0.102586724 * 0.95^x` with `x` being the number of weeks that have passed. To derive the reward multiplier from this curve we need to sum up the multiplier from the curve for each week in which the user has claimed.
+
+This calculation is simplified by providing directly all the summed multiplier combinations. So instead of providing the weekly reward for week 1 `0.102586724 * 0.95^1` and for week 2 `0.102586724 * 0.95^2`; we provide the sum for week 1 `0.102586724 * 0.95^1` week 2 `0.102586724 * 0.95^1 + 0.102586724 * 0.95^2`. If we want to calculate the weekly reward we then simply need to subtract the summed / cumulative reward from week 2 and week 1.
+
+All of the cumulative rewards are stored in the `cumulativeWeeklyRewardMultiplier` lookup table.
+
+#### `getRewardMultiplier`
+
+Used to estimate and derive the mint reward multiplier for YEN.
+
+Inputs:
+
+1. `finalWeek`: The the number of weeks that has elapsed or will elapse until maturity
+1. `termWeeks`: The term limit in weeks
+
+To estimate or calculate the mint reward we need to do a backwards calculation. When will the claim end and be minted is defined by `finalWeek`. The number of `termWeeks` is then subtracted accordingly to derive the reward multiplier as described in `getCumulativeRewardMultiplier`.
 
 ## Deployment & Tests
 
@@ -95,7 +122,7 @@ YEN token minting has also a reward multiplier. TODO: is this needed? If yes, pl
 
 ### Local deployment
 
-You can deploy the contracts with script *scripts/deploy.ts*. Local Hardhat deployment can be done by:
+You can deploy the contracts with script _scripts/deploy.ts_. Local Hardhat deployment can be done by:
 
 1. Start a Hardhat node: `npx hardhat node`
 1. Deploy: `npx hardhat run scripts/deploy.ts`
@@ -108,12 +135,11 @@ If you want to deploy to a live test network (Goerli) you should:
 1. Deploy: `npx hardhat run scripts/deploy.ts --network goerli`
 
 The deploy script performes the following actions:
-1. Deploys all the needed contracts (including a new instance of XENCrypto) 
+
+1. Deploys all the needed contracts (including a new instance of XENCrypto)
 1. Verifies all of the deployed contracts in Etherscan
 1. Writes the contract addresses [here](contract_addresses.md). This file therefore contains the latest Goerli deployment addresses
 
-## Frontend
+### Generate reward multiplier lookup table
 
-`frontend` contains the code for a ReactJs app that interacts with the `XENWallet` contract. Mints and stakes are derived from the original `XENCrypto` contract. The corresponding proxy addresses can be found through `addressResolver` in the `XENWallet` contract. For convenience you may call `getActiveWallets(...)`.
-
-TODO
+To generate the lookup table of cumulative weekly reward multipliers run `npm run precalc`. The generated text file (`precalculateRates.txt`) is then directly used inside the main `XENWalletManager.sol` contract.
