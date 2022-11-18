@@ -80,7 +80,7 @@ Inputs:
 
 A rescue can only be performed if the wallet's maturity has been exceeded by at least 2 days.
 
-A rescue fee of 20% (of both XEN and YEN tokens) is deducted for each wallet and sent to the rescue address given in the contract constructor.
+A rescue fee is deducted for each wallet and sent to the rescue address given in the contract constructor.
 
 ### XENWallet contract
 

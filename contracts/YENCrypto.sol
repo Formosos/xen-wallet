@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract YENCrypto is ERC20 {
     address public minter;
 
-    constructor(address _minter) ERC20("YEN", "YEN") {
+    constructor(address _minter) ERC20("YEN Crypto", "YEN") {
         minter = _minter;
     }
 

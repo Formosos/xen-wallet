@@ -56,7 +56,11 @@ contract XENWalletManager is Ownable {
     /**
      * @dev derive a deterministic address based on a salt value
      */
-    function getDeterministicAddress(bytes32 salt) public view returns (address) {
+    function getDeterministicAddress(bytes32 salt)
+        public
+        view
+        returns (address)
+    {
         return implementation.predictDeterministicAddress(salt);
     }
 
@@ -154,10 +158,12 @@ contract XENWalletManager is Ownable {
      * @param originalAmount defines the original amount without adjustment
      * @param termSeconds defines the term limit in seconds
      */
-    function getAdjustedMintAmount(
-        uint256 originalAmount,
-        uint256 termSeconds
-    ) internal view virtual returns (uint256) {
+    function getAdjustedMintAmount(uint256 originalAmount, uint256 termSeconds)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
         uint256 elapsedWeeks = getElapsedWeeks();
         uint256 termWeeks = termSeconds / SECONDS_IN_WEEK;
         return
@@ -231,6 +237,9 @@ contract XENWalletManager is Ownable {
         }
     }
 
+    /**
+     * @dev Rescues rewards which are about to expire, from the given owner
+     */
     function batchClaimMintRewardRescue(
         address owner,
         uint256 startId,
