@@ -180,7 +180,13 @@ contract XENWalletManager is Ownable {
         unmintedWallets[msg.sender].push(address(clone));
     }
 
+    /**
+     * @dev batch create wallets with a specific term
+     * @param amount defines the number of wallets
+     * @param term defines the term limit in seconds
+     */
     function batchCreateWallets(uint256 amount, uint256 term) external {
+        require(amount >= 1, "More than one wallet");
         require(term >= MIN_TOKEN_MINT_TERM, "Too short term");
 
         uint256 existing = unmintedWallets[msg.sender].length;
