@@ -2,16 +2,16 @@
 
 const precisionMultiplier = 10 ** 9;
 
-const calcRate = (_precisionMultiplier, _elapsedWeeks) => {
+const calcRate = (precisionMultiplier, elapsedWeeks) => {
   // integrate a * 0.95^x from 0 to infinity = 2
   // solve => a = 0.102586724
-  let _current = _precisionMultiplier * 0.102586724;
-  let _cumulative = _current;
-  for (let i = 0; i < _elapsedWeeks; ++i) {
-    _current = (_current * 95) / 100;
-    _cumulative += _current;
+  let current = precisionMultiplier * 0.10000025;
+  let cumulative = current;
+  for (let i = 0; i < elapsedWeeks; ++i) {
+    current = (current * 95) / 100;
+    cumulative += current;
   }
-  return _cumulative;
+  return cumulative;
 };
 
 const rates = [];
