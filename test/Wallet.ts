@@ -12,6 +12,7 @@ import {
   MockManager,
 } from "../typechain-types";
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
+import { experimentalAddHardhatNetworkMessageTraceHook } from "hardhat/config";
 
 describe("Wallet", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -122,6 +123,9 @@ describe("Wallet", function () {
       await manager.batchCreateWallets(5, 50);
       await manager.batchCreateWallets(3, 50);
 
+      const numWallets = await manager.activeWallets();
+      expect(numWallets).to.equal(8);
+
       const wallets = await manager.getWallets(deployer.address, 0, 7);
       expect(wallets.length).to.equal(8);
       for (let i = 0; i < wallets.length; i++) {
@@ -214,11 +218,21 @@ describe("Wallet", function () {
 
     it("wallet count doesn't change after minting", async function () {
       await manager.connect(deployer).batchCreateWallets(5, 50);
-      await timeTravel(50);
-      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 3);
+      await timeTravelDays(50);
+
+      let numTotalWallets = await manager.totalWallets();
+      let numActiveWallets = await manager.activeWallets();
+      expect(numTotalWallets).to.equal(5);
+      expect(numActiveWallets).to.equal(5);
+
+      await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
+
+      numActiveWallets = await manager.activeWallets();
+      numTotalWallets = await manager.totalWallets();
+      expect(numTotalWallets).to.equal(5);
+      expect(numActiveWallets).to.equal(0);
 
       const walletCount = await manager.getWalletCount(deployer.address);
-
       expect(walletCount).to.equal(5);
     });
 
@@ -259,7 +273,7 @@ describe("Wallet", function () {
     beforeEach(async function () {
       await manager.connect(deployer).batchCreateWallets(5, 100);
       wallets = await manager.getWallets(deployer.address, 0, 4);
-      await timeTravel(100);
+      await timeTravelDays(100);
     });
 
     it("works", async function () {
@@ -273,7 +287,7 @@ describe("Wallet", function () {
 
     it("works for multiple users", async function () {
       await manager.connect(user2).batchCreateWallets(5, 100);
-      await timeTravel(100);
+      await timeTravelDays(100);
 
       await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
       await manager.connect(user2).batchClaimAndTransferMintReward(0, 4);
@@ -288,7 +302,7 @@ describe("Wallet", function () {
 
     it("mints equal amount of own tokens", async function () {
       await manager.connect(deployer).batchCreateWallets(5, 51);
-      await timeTravel(51);
+      await timeTravelDays(51);
       await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
       const xenBalanceOwner = await xen.balanceOf(deployer.address);
@@ -300,7 +314,6 @@ describe("Wallet", function () {
       expect(ownBalanceOwner).to.above(0);
       expect(xenBalanceFeeReceiver).to.equal(0);
       expect(ownBalanceFeeReceiver).to.above(0);
-
       expect(ownBalanceFeeReceiver.mul(19)).to.approximately(
         ownBalanceOwner,
         20
@@ -309,7 +322,6 @@ describe("Wallet", function () {
 
     it("zeroes wallets", async function () {
       await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
-
       wallets = await manager.getWallets(deployer.address, 0, 4);
 
       expect(wallets[0]).to.equal(ethers.constants.AddressZero);
@@ -324,7 +336,7 @@ describe("Wallet", function () {
       await manager.connect(deployer).batchCreateWallets(5, 53);
       // create more wallets with short term
       await manager.connect(deployer).batchCreateWallets(2, 51);
-      await timeTravel(52);
+      await timeTravelDays(52);
 
       await expect(
         manager.connect(deployer).batchClaimAndTransferMintReward(0, 11)
@@ -350,13 +362,12 @@ describe("Wallet", function () {
     beforeEach(async function () {
       await manager.connect(user2).batchCreateWallets(2, 50);
       wallets = await manager.getWallets(user2.address, 0, 1);
-      await timeTravel(50);
+      await timeTravelDays(50);
     });
 
     it("works", async function () {
       await nextDay();
       await nextDay();
-
       await manager
         .connect(deployer)
         .batchClaimMintRewardRescue(user2.address, 0, 1);
@@ -420,88 +431,90 @@ describe("Wallet", function () {
   describe("Weekly reward multiplier calculation", function () {
 
     it("week 1", async function () {
-      const actual = await manager.getWeeklyRewardMultiplier(0);
+      const adjusted = await manager.getWeeklyRewardMultiplier(0);
       const expected = 102586724;
-      expect(expected).to.equal(actual);
+      expect(expected).to.equal(adjusted);
     });
 
     it("week 10", async function () {
-      const actual = await manager.getWeeklyRewardMultiplier(10);
+      const adjusted = await manager.getWeeklyRewardMultiplier(10);
       const expected = 884707718 - 823285257;
-      expect(expected).to.equal(actual);
+      expect(expected).to.equal(adjusted);
     });
 
     it("week 200", async function () {
-      const actual = await manager.getWeeklyRewardMultiplier(200);
+      const adjusted = await manager.getWeeklyRewardMultiplier(200);
       const expected = 2051666157 - 2051662561;
-      expect(expected).to.equal(actual);
+      expect(expected).to.equal(adjusted);
     });
   });
-
-  // TODO: Add more coverage for reward multiplier calculations
 
   describe("Mint amount calculations", function () {
     let original: number;
     beforeEach(async function () {
       original = 1000000;
     });
-
-    let secondsInWeek = 60 * 60 * 24 * 7;
+    let daysInWeek = 7;
 
     it("no time has passed, returns 0.102586724 * original", async function () {
-      const adjusted = await manager.getAdjustedMint(original, 0);
+      const adjusted = await manager.getAdjustedMint(original, daysInWeek);
       const expected = Math.floor((original * 102586724) / 1000000000);
-      expect(adjusted).to.equal(expected);
+      expect(expected).to.equal(adjusted);
     });
+
 
     it("first week returns right amount", async function () {
-      const currentWeek = 1;
-      await timeTravelSecs(secondsInWeek * currentWeek);
+      const numWeeks = 1;
+      await timeTravelDays(daysInWeek * numWeeks);
       const adjusted = await manager.getAdjustedMint(
         original,
-        currentWeek * secondsInWeek
+        numWeeks * daysInWeek
       );
+
       const expected = Math.floor((original * 200044111) / 1000000000);
-      expect(adjusted).to.equal(expected);
+      expect(expected).to.equal(adjusted);
+
+      const elapsedWeeks = await manager.getElapsedWeeks();
+      expect(elapsedWeeks).to.equal(1);
     });
 
-    it("tenth week returs right amount", async function () {
-      const currentWeek = 10;
-      await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
+    it("tenth week returns right amount", async function () {
+      const numWeeks = 10;
+      await timeTravelDays(daysInWeek * numWeeks);
       const adjusted = await manager.getAdjustedMint(
         original,
-        2 * secondsInWeek
+        2 * daysInWeek
       );
+
+      const elapsedWeeks = await manager.getElapsedWeeks();
+      expect(elapsedWeeks).to.equal(10);
+
       const expected = Math.floor(
         (original * (884707718 - 690571906)) / 1000000000
       );
-      expect(adjusted).to.equal(expected);
+      expect(expected).to.equal(adjusted);
     });
 
     it("a week after precalculated values the reward becomes zero", async function () {
       const currentWeek = 260;
-      await timeTravelSecs(24 * 60 * 60 * 7 * currentWeek);
+      await timeTravelDays(daysInWeek * currentWeek);
       const adjusted = await manager.getAdjustedMint(
         original,
-        2 * secondsInWeek
+        2 * daysInWeek
       );
       const expected = 0;
       expect(adjusted).to.equal(expected);
     });
   });
+
 });
 
-const timeTravelSecs = async (seconds: number) => {
-  await network.provider.send("evm_increaseTime", [seconds]);
-  await network.provider.send("evm_mine");
-};
-
-export const timeTravel = async (days: number) => {
+export const timeTravelDays = async (days: number) => {
   const seconds = 24 * 60 * 60 * days;
   await network.provider.send("evm_increaseTime", [seconds]);
   await network.provider.send("evm_mine");
 };
 
 const nextDay = async () => {
-  await timeTravel(1);
+  await timeTravelDays(1);
 };

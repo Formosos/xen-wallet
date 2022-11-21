@@ -103,13 +103,13 @@ contract XENWalletManager is Ownable {
         returns (IXENCrypto.MintInfo[] memory infos)
     {
         infos = new IXENCrypto.MintInfo[](owners.length);
-        for (uint256 i = 0; i < owners.length; ++i) {
-            infos[i] = XENWallet(owners[i]).getUserMint();
+        for (uint256 id = 0; id < owners.length; id++) {
+            infos[id] = XENWallet(owners[id]).getUserMint();
         }
     }
 
     /**
-     * @dev returns cumulative weekly reward multiplier at a specific week
+     * @dev returns cumulative weekly reward multiplier at a specific week index
      */
     function getCumulativeWeeklyRewardMultiplier(int256 index)
         public
@@ -145,27 +145,27 @@ contract XENWalletManager is Ownable {
         view
         returns (uint256)
     {
-        require(finalWeek >= termWeeks, "Incorrect term format");
+        require(finalWeek + 1 >= termWeeks, "Incorrect term format");
         return
             getCumulativeWeeklyRewardMultiplier(int256(finalWeek)) -
             getCumulativeWeeklyRewardMultiplier(
-                int256(finalWeek - termWeeks) - 1
+                int256(finalWeek) - int256(termWeeks) - 1
             );
     }
 
     /**
      * @dev calculates adjusted mint amount based on reward multiplier
      * @param originalAmount defines the original amount without adjustment
-     * @param termSeconds defines the term limit in seconds
+     * @param termDays defines the term limit in days
      */
-    function getAdjustedMintAmount(uint256 originalAmount, uint256 termSeconds)
+    function getAdjustedMintAmount(uint256 originalAmount, uint256 termDays)
         internal
         view
         virtual
         returns (uint256)
     {
         uint256 elapsedWeeks = getElapsedWeeks();
-        uint256 termWeeks = termSeconds / SECONDS_IN_WEEK;
+        uint256 termWeeks = termDays / 7;
         return
             (originalAmount * getRewardMultiplier(elapsedWeeks, termWeeks)) /
             1_000_000_000;
@@ -238,7 +238,7 @@ contract XENWalletManager is Ownable {
     }
 
     /**
-     * @dev Rescues rewards which are about to expire, from the given owner
+     * @dev rescues rewards which are about to expire, from the given owner
      */
     function batchClaimMintRewardRescue(
         address owner,
@@ -271,7 +271,6 @@ contract XENWalletManager is Ownable {
 
         if (rescued > 0) {
             uint256 toBeMinted = getAdjustedMintAmount(rescued, averageTerm);
-
             uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
             uint256 mintFee = (toBeMinted * (RESCUE_FEE + MINT_FEE)) / 10_000;
 
@@ -285,6 +284,9 @@ contract XENWalletManager is Ownable {
         }
     }
 
+    /**
+     * @dev change fee receiver address
+     */
     function changeFeeReceiver(address newReceiver) external onlyOwner {
         feeReceiver = newReceiver;
     }
@@ -294,13 +296,13 @@ contract XENWalletManager is Ownable {
         Precalculated values for the formula:
         // integrate 0.102586724 * 0.95^x from 0 to index
         // Calculate 5% weekly decline and compound rewards
-        let _current = _precisionMultiplier * 0.102586724;
-        let _cumulative = _current;
-        for (let i = 0; i < _elapsedWeeks; ++i) {
-            _current = (_current * 95) / 100;
-            _cumulative += _current;
+        let current = precisionMultiplier * 0.102586724;
+        let cumulative = current;
+        for (let i = 0; i < elapsedWeeks; i++) {
+            current = (current * 95) / 100;
+            cumulative += current;
         }
-        return _cumulative;
+        return cumulative;
         */
 
         cumulativeWeeklyRewardMultiplier[0] = 102586724;
