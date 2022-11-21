@@ -283,6 +283,12 @@ describe("Wallet", function () {
 
       expect(xenBalanceBefore).to.equal(0);
       expect(xenBalanceAfter).to.above(0);
+
+      const xenBalanceOwner = await xen.balanceOf(deployer.address);
+      const yenBalanceOwner = await yen.balanceOf(deployer.address);
+
+      expect(xenBalanceOwner).to.above(0);
+      expect(yenBalanceOwner).to.above(xenBalanceOwner);
     });
 
     it("works for multiple users", async function () {

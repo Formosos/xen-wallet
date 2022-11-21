@@ -304,7 +304,6 @@ contract XENWalletManager is Ownable {
         }
         return cumulative;
         */
-
         cumulativeWeeklyRewardMultiplier[0] = 102586724;
         cumulativeWeeklyRewardMultiplier[1] = 200044111;
         cumulativeWeeklyRewardMultiplier[2] = 292628630;
