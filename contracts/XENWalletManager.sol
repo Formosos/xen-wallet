@@ -28,7 +28,7 @@ contract XENWalletManager is Ownable {
     uint256 internal constant MIN_TOKEN_MINT_TERM = 50;
     uint256 internal constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
     uint256 internal constant RESCUE_FEE = 4700; // 47%
-    uint256 internal constant MINT_FEE = 500; // 5%
+    uint256 internal constant MINT_FEE = 1_000; // 10%
 
     constructor(
         address xenCrypto,
