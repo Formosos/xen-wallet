@@ -455,19 +455,19 @@ describe("Wallet", function () {
 
     it("week 1", async function () {
       const adjusted = await manager.getWeeklyRewardMultiplier(0);
-      const expected = 102586724;
+      const expected = 100000269;
       expect(expected).to.equal(adjusted);
     });
 
     it("week 10", async function () {
       const adjusted = await manager.getWeeklyRewardMultiplier(10);
-      const expected = 884707718 - 823285257;
+      const expected = 862402141 - 802528286;
       expect(expected).to.equal(adjusted);
     });
 
     it("week 200", async function () {
       const adjusted = await manager.getWeeklyRewardMultiplier(200);
-      const expected = 2051666157 - 2051662561;
+      const expected = 1999938794 - 1999935289;
       expect(expected).to.equal(adjusted);
     });
   });
@@ -481,7 +481,8 @@ describe("Wallet", function () {
 
     it("no time has passed, returns 0.102586724 * original", async function () {
       const adjusted = await manager.getAdjustedMint(original, daysInWeek);
-      const expected = Math.floor((original * 102586724) / 1000000000);
+      const week_0 = 100000269;
+      const expected = Math.floor((original * week_0) / 1000000000);
       expect(expected).to.equal(adjusted);
     });
 
@@ -494,7 +495,8 @@ describe("Wallet", function () {
         numWeeks * daysInWeek
       );
 
-      const expected = Math.floor((original * 200044111) / 1000000000);
+      const week_1 = 195000526;
+      const expected = Math.floor((original * week_1) / 1000000000);
       expect(expected).to.equal(adjusted);
 
       const elapsedWeeks = await manager.getElapsedWeeks();
@@ -512,8 +514,10 @@ describe("Wallet", function () {
       const elapsedWeeks = await manager.getElapsedWeeks();
       expect(elapsedWeeks).to.equal(10);
 
+      const week_10 = 862402141;
+      const week_7 = 673160953;
       const expected = Math.floor(
-        (original * (884707718 - 690571906)) / 1000000000
+        (original * (week_10 - week_7)) / 1000000000
       );
       expect(expected).to.equal(adjusted);
     });
