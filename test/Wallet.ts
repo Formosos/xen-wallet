@@ -396,20 +396,17 @@ describe("Wallet", function () {
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
       const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
-      const ownBalanceRescuer = await yen.balanceOf(rescuer.address);
+      const yenBalanceRescuer = await yen.balanceOf(rescuer.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
       const yenBalanceOwner = await yen.balanceOf(user2.address);
 
       expect(xenBalanceRescuer).to.above(0);
-      expect(ownBalanceRescuer).to.above(0);
+      expect(yenBalanceRescuer).to.above(0);
       expect(xenBalanceOwner).to.above(0);
       expect(yenBalanceOwner).to.above(0);
 
-      expect(xenBalanceRescuer).to.above(ownBalanceRescuer);
-      expect(yenBalanceOwner).to.below(xenBalanceOwner);
-      expect(ownBalanceRescuer).to.above(yenBalanceOwner);
-      expect(xenBalanceRescuer).to.below(xenBalanceOwner);
-      expect(xenBalanceRescuer.mul(2)).to.above(xenBalanceOwner);
+      expect(xenBalanceRescuer).to.equal(xenBalanceOwner);
+      expect(yenBalanceRescuer).to.equal(yenBalanceOwner);
     });
 
     it("nothing rescued if not far ahead enough in maturity", async function () {
