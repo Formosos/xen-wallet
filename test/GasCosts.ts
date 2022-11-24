@@ -17,7 +17,7 @@ xdescribe("Gas costs", function () {
   });
 
   xit("Batch create", async function () {
-    const [_owner, _rescuer, _otherAccount] = await ethers.getSigners();
+    const [_owner, _feeReceiver, _otherAccount] = await ethers.getSigners();
 
     const MathLib = await ethers.getContractFactory("Math");
     const _math = await MathLib.deploy();
@@ -36,7 +36,7 @@ xdescribe("Gas costs", function () {
     const _manager = await Manager.deploy(
       _xen.address,
       _wallet.address,
-      _rescuer.address
+      _feeReceiver.address
     );
 
     const start = 1;
@@ -63,7 +63,7 @@ xdescribe("Gas costs", function () {
   });
 
   xit("Manager deployment", async function () {
-    const [_owner, _rescuer, _otherAccount] = await ethers.getSigners();
+    const [_owner, _feeReceiver, _otherAccount] = await ethers.getSigners();
 
     const Manager = await ethers.getContractFactory("XENWalletManager");
     const _manager = await Manager.deploy(
