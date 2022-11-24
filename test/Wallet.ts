@@ -12,7 +12,6 @@ import {
   MockManager,
 } from "../typechain-types";
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
-import { experimentalAddHardhatNetworkMessageTraceHook } from "hardhat/config";
 
 describe("Wallet", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -20,7 +19,7 @@ describe("Wallet", function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployWalletFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [_deployer, _rescuer, _user2] = await ethers.getSigners();
+    const [_deployer, _feeReceiver, _user2] = await ethers.getSigners();
 
     const MathLib = await ethers.getContractFactory("Math");
     const _math = await MathLib.deploy();
@@ -40,13 +39,13 @@ describe("Wallet", function () {
     const _manager = await Manager.deploy(
       _xen.address,
       _wallet.address,
-      _rescuer.address
+      _feeReceiver.address
     );
 
     const YEN = await _manager.yenCrypto();
     const _yen = await ethers.getContractAt("YENCrypto", YEN);
 
-    return { _xen, _wallet, _manager, _yen, _deployer, _rescuer, _user2 };
+    return { _xen, _wallet, _manager, _yen, _deployer, _feeReceiver, _user2 };
   }
 
   let xen: XENCrypto,
@@ -54,11 +53,11 @@ describe("Wallet", function () {
     manager: MockManager,
     yen: YENCrypto,
     deployer: SignerWithAddress,
-    rescuer: SignerWithAddress,
+    feeReceiver: SignerWithAddress,
     user2: SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _manager, _yen, _deployer, _rescuer, _user2 } =
+    const { _xen, _wallet, _manager, _yen, _deployer, _feeReceiver, _user2 } =
       await loadFixture(deployWalletFixture);
 
     xen = _xen;
@@ -66,7 +65,7 @@ describe("Wallet", function () {
     manager = _manager;
     yen = _yen;
     deployer = _deployer;
-    rescuer = _rescuer;
+    feeReceiver = _feeReceiver;
     user2 = _user2;
   });
 
@@ -95,7 +94,7 @@ describe("Wallet", function () {
 
     it("fails if not owner", async function () {
       await expect(
-        manager.connect(rescuer).changeFeeReceiver(user2.address)
+        manager.connect(feeReceiver).changeFeeReceiver(user2.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
@@ -295,7 +294,6 @@ describe("Wallet", function () {
       await manager.connect(user2).batchCreateWallets(5, 100);
       await timeTravelDays(100);
 
-      // TODO: Fee receiver should be equal to rescuer probably
       const feeReceiverAddress = await manager.feeReceiver();
 
       const yenDeployerBalanceBefore = await yen.balanceOf(feeReceiverAddress);
@@ -329,8 +327,8 @@ describe("Wallet", function () {
 
       const xenBalanceOwner = await xen.balanceOf(deployer.address);
       const yenBalanceOwner = await yen.balanceOf(deployer.address);
-      const xenBalanceFeeReceiver = await xen.balanceOf(rescuer.address);
-      const ownBalanceFeeReceiver = await yen.balanceOf(rescuer.address);
+      const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
+      const ownBalanceFeeReceiver = await yen.balanceOf(feeReceiver.address);
 
       expect(xenBalanceOwner).to.above(0);
       expect(yenBalanceOwner).to.above(0);
@@ -395,18 +393,18 @@ describe("Wallet", function () {
         .connect(deployer)
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
-      const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
-      const yenBalanceRescuer = await yen.balanceOf(rescuer.address);
+      const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
+      const yenBalanceFeeReceiver = await yen.balanceOf(feeReceiver.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
       const yenBalanceOwner = await yen.balanceOf(user2.address);
 
-      expect(xenBalanceRescuer).to.above(0);
-      expect(yenBalanceRescuer).to.above(0);
+      expect(xenBalanceFeeReceiver).to.above(0);
+      expect(yenBalanceFeeReceiver).to.above(0);
       expect(xenBalanceOwner).to.above(0);
       expect(yenBalanceOwner).to.above(0);
 
-      expect(xenBalanceRescuer).to.equal(xenBalanceOwner);
-      expect(yenBalanceRescuer).to.equal(yenBalanceOwner);
+      expect(xenBalanceFeeReceiver).to.equal(xenBalanceOwner);
+      expect(yenBalanceFeeReceiver).to.equal(yenBalanceOwner);
     });
 
     it("nothing rescued if not far ahead enough in maturity", async function () {
@@ -416,13 +414,13 @@ describe("Wallet", function () {
         .connect(deployer)
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
-      const xenBalanceRescuer = await xen.balanceOf(rescuer.address);
-      const ownBalanceRescuer = await yen.balanceOf(rescuer.address);
+      const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
+      const ownBalanceFeeReceiver = await yen.balanceOf(feeReceiver.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
       const yenBalanceOwner = await yen.balanceOf(user2.address);
 
-      expect(xenBalanceRescuer).to.equal(0);
-      expect(ownBalanceRescuer).to.equal(0);
+      expect(xenBalanceFeeReceiver).to.equal(0);
+      expect(ownBalanceFeeReceiver).to.equal(0);
       expect(xenBalanceOwner).to.equal(0);
       expect(yenBalanceOwner).to.equal(0);
     });
@@ -449,7 +447,6 @@ describe("Wallet", function () {
   });
 
   describe("Weekly reward multiplier calculation", function () {
-
     it("week 1", async function () {
       const adjusted = await manager.getWeeklyRewardMultiplier(0);
       const expected = 100000269;
@@ -483,7 +480,6 @@ describe("Wallet", function () {
       expect(expected).to.equal(adjusted);
     });
 
-
     it("first week returns right amount", async function () {
       const numWeeks = 1;
       await timeTravelDays(daysInWeek * numWeeks);
@@ -503,34 +499,25 @@ describe("Wallet", function () {
     it("tenth week returns right amount", async function () {
       const numWeeks = 10;
       await timeTravelDays(daysInWeek * numWeeks);
-      const adjusted = await manager.getAdjustedMint(
-        original,
-        2 * daysInWeek
-      );
+      const adjusted = await manager.getAdjustedMint(original, 2 * daysInWeek);
 
       const elapsedWeeks = await manager.getElapsedWeeks();
       expect(elapsedWeeks).to.equal(10);
 
       const week_10 = 862402141;
       const week_7 = 673160953;
-      const expected = Math.floor(
-        (original * (week_10 - week_7)) / 1000000000
-      );
+      const expected = Math.floor((original * (week_10 - week_7)) / 1000000000);
       expect(expected).to.equal(adjusted);
     });
 
     it("a week after precalculated values the reward becomes zero", async function () {
       const currentWeek = 260;
       await timeTravelDays(daysInWeek * currentWeek);
-      const adjusted = await manager.getAdjustedMint(
-        original,
-        2 * daysInWeek
-      );
+      const adjusted = await manager.getAdjustedMint(original, 2 * daysInWeek);
       const expected = 0;
       expect(adjusted).to.equal(expected);
     });
   });
-
 });
 
 export const timeTravelDays = async (days: number) => {

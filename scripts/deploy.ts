@@ -22,7 +22,11 @@ async function main() {
   const accounts = await hre.ethers.getSigners();
 
   const deployer = accounts[0];
-  const rescuer = accounts[0]; // TODO
+  const feeReceiver = process.env.GOERLI_FEE_RECEIVER_ADDRESS;
+
+  if (!feeReceiver || !deployer) {
+    throw "Invalid config";
+  }
 
   const MathLib = await ethers.getContractFactory("Math");
   const _math = await MathLib.connect(deployer).deploy();
@@ -32,23 +36,32 @@ async function main() {
       Math: _math.address,
     },
   });
-  const _xen = await XEN.connect(deployer).deploy();
-  await _xen.deployed();
+
+  let xenAddress = process.env.GOERLI_XEN_ADDRESS;
+  let xenDeployed = false;
+
+  if (!xenAddress) {
+    console.log("No XEN address set, deploying a new one");
+    const _xen = await XEN.connect(deployer).deploy();
+    await _xen.deployed();
+    xenAddress = _xen.address;
+    xenDeployed = true;
+  }
 
   const Wallet = await ethers.getContractFactory("XENWallet");
   const _wallet = await Wallet.connect(deployer).deploy();
   await _wallet.deployed();
-  await _wallet.initialize(_xen.address, deployer.address);
+  await _wallet.initialize(xenAddress, deployer.address);
 
   const Manager = await ethers.getContractFactory("XENWalletManager");
   const _manager = await Manager.connect(deployer).deploy(
-    _xen.address,
+    xenAddress,
     _wallet.address,
-    rescuer.address
+    feeReceiver
   );
   await _manager.deployed();
 
-  const _ownToken = await _manager.ownToken();
+  const _yenToken = await _manager.yenCrypto();
 
   if (network.name != "localhost" && network.name != "hardhat") {
     console.log("Deployments done, waiting for etherscan verifications");
@@ -56,14 +69,13 @@ async function main() {
     await new Promise((f) => setTimeout(f, 60000));
 
     await verify(_math.address, []);
-    await verify(_xen.address, []);
+    if (xenDeployed) {
+      await verify(xenAddress, []);
+    }
+
     await verify(_wallet.address, []);
-    await verify(_manager.address, [
-      _xen.address,
-      _wallet.address,
-      rescuer.address,
-    ]);
-    await verify(_ownToken, [_manager.address]);
+    await verify(_manager.address, [xenAddress, _wallet.address, feeReceiver]);
+    await verify(_yenToken, [_manager.address]);
 
     if (fs.existsSync(addressFile)) {
       fs.rmSync(addressFile);
@@ -82,15 +94,15 @@ async function main() {
     };
 
     writeAddr(_manager.address, "Wallet manager");
-    writeAddr(_xen.address, "XENCrypto");
+    writeAddr(xenAddress, "XENCrypto");
     writeAddr(_wallet.address, "Initial wallet");
-    writeAddr(_ownToken, "YEN token");
+    writeAddr(_yenToken, "YEN token");
     writeAddr(_math.address, "Math library");
   }
 
   console.log("Deployments done");
-  console.log(`XENCrypto: ${_xen.address}, Initial wallet: ${_wallet.address}, 
-  Wallet manager: ${_manager.address}, YEN token: ${_ownToken}, Math library: ${_math.address}`);
+  console.log(`XENCrypto: ${xenAddress}, Initial wallet: ${_wallet.address}, 
+  Wallet manager: ${_manager.address}, YEN token: ${_yenToken}, Math library: ${_math.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
