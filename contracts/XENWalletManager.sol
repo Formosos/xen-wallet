@@ -117,8 +117,13 @@ contract XENWalletManager is Ownable {
         returns (uint256)
     {
         if (index < 0) return 0;
-        if (index >= int256(cumulativeWeeklyRewardMultiplier.length))
-            return cumulativeWeeklyRewardMultiplier[249];
+        if (index >= int256(cumulativeWeeklyRewardMultiplier.length)) {
+            // Return the last multiplier
+            return
+                cumulativeWeeklyRewardMultiplier[
+                    cumulativeWeeklyRewardMultiplier.length - 1
+                ];
+        }
         return cumulativeWeeklyRewardMultiplier[uint256(index)];
     }
 
@@ -247,7 +252,6 @@ contract XENWalletManager is Ownable {
     ) external onlyOwner {
         require(endId >= startId, "Forward ordering");
 
-        IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
         uint256 rescued = 0;
         uint256 averageTerm = 0;
         uint256 walletRange = endId - startId + 1;
@@ -270,18 +274,31 @@ contract XENWalletManager is Ownable {
         activeWallets -= walletRange;
 
         if (rescued > 0) {
-            uint256 toBeMinted = getAdjustedMintAmount(rescued, averageTerm);
-            uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
-            uint256 mintFee = (toBeMinted * RESCUE_FEE) / 10_000;
-
-            // Mint YEN tokens
-            yenCrypto.mint(owner, toBeMinted - mintFee);
-            yenCrypto.mint(feeReceiver, mintFee);
-
-            // Transfer XEN tokens
-            xenCrypto.transfer(owner, rescued - xenFee);
-            xenCrypto.transfer(feeReceiver, xenFee);
+            assignRescueTokens(owner, rescued, averageTerm);
         }
+    }
+
+    /**
+     * @dev mints and transfers YEN and XEN tokens in a token rescue
+     */
+    function assignRescueTokens(
+        address owner,
+        uint256 rescued,
+        uint256 averageTerm
+    ) internal virtual {
+        IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
+
+        uint256 toBeMinted = getAdjustedMintAmount(rescued, averageTerm);
+        uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
+        uint256 mintFee = (toBeMinted * RESCUE_FEE) / 10_000;
+
+        // Mint YEN tokens
+        yenCrypto.mint(owner, toBeMinted - mintFee);
+        yenCrypto.mint(feeReceiver, mintFee);
+
+        // Transfer XEN tokens
+        xenCrypto.transfer(owner, rescued - xenFee);
+        xenCrypto.transfer(feeReceiver, xenFee);
     }
 
     /**

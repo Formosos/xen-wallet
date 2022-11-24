@@ -22,21 +22,21 @@ describe("Wallet", function () {
     const [_deployer, _feeReceiver, _user2] = await ethers.getSigners();
 
     const MathLib = await ethers.getContractFactory("Math");
-    const _math = await MathLib.deploy();
+    const _math = await MathLib.connect(_deployer).deploy();
 
     const XEN = await ethers.getContractFactory("XENCrypto", {
       libraries: {
         Math: _math.address,
       },
     });
-    const _xen = await XEN.deploy();
+    const _xen = await XEN.connect(_deployer).deploy();
 
     const Wallet = await ethers.getContractFactory("XENWallet");
-    const _wallet = await Wallet.deploy();
+    const _wallet = await Wallet.connect(_deployer).deploy();
     await _wallet.initialize(_xen.address, _deployer.address);
 
     const Manager = await ethers.getContractFactory("MockManager");
-    const _manager = await Manager.deploy(
+    const _manager = await Manager.connect(_deployer).deploy(
       _xen.address,
       _wallet.address,
       _feeReceiver.address
@@ -376,6 +376,10 @@ describe("Wallet", function () {
         manager.connect(deployer).batchClaimAndTransferMintReward(0, 0)
       ).to.be.reverted;
     });
+
+    describe("Token assignment", function () {
+      // TODO: add lots of tests utilizing function 'assignRescueTokens_mock'
+    });
   });
 
   describe("Rescue", function () {
@@ -446,24 +450,48 @@ describe("Wallet", function () {
     });
   });
 
-  describe("Weekly reward multiplier calculation", function () {
-    it("week 1", async function () {
-      const adjusted = await manager.getWeeklyRewardMultiplier(0);
-      const expected = 100000269;
-      expect(expected).to.equal(adjusted);
+  describe("Reward multiplier calculations", function () {
+    describe("Weekly reward multiplier calculation", function () {
+      it("week 1", async function () {
+        const adjusted = await manager.getWeeklyRewardMultiplier(0);
+        const expected = 100000269;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 10", async function () {
+        const adjusted = await manager.getWeeklyRewardMultiplier(10);
+        const expected = 862402141 - 802528286;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 200", async function () {
+        const adjusted = await manager.getWeeklyRewardMultiplier(200);
+        const expected = 1999938794 - 1999935289;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 249", async function () {
+        const adjusted = await manager.getWeeklyRewardMultiplier(249);
+        const expected = 2000000000 - 1999999716;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 250", async function () {
+        const adjusted = await manager.getWeeklyRewardMultiplier(250);
+        // TODO: is this like it should be? After the preset weeks the weekly multiplier is 0?
+        const expected = 2000000000 - 2000000000;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 300", async function () {
+        const adjusted = await manager.getWeeklyRewardMultiplier(300);
+        // TODO: is this like it should be? After the preset weeks the weekly multiplier is 0?
+        const expected = 2000000000 - 2000000000;
+        expect(expected).to.equal(adjusted);
+      });
     });
 
-    it("week 10", async function () {
-      const adjusted = await manager.getWeeklyRewardMultiplier(10);
-      const expected = 862402141 - 802528286;
-      expect(expected).to.equal(adjusted);
-    });
-
-    it("week 200", async function () {
-      const adjusted = await manager.getWeeklyRewardMultiplier(200);
-      const expected = 1999938794 - 1999935289;
-      expect(expected).to.equal(adjusted);
-    });
+    // TODO: copy paste similar 'describe' sections for functions 'getRewardMultiplier' and 'getCumulativeWeeklyRewardMultiplier'
   });
 
   describe("Mint amount calculations", function () {
@@ -474,7 +502,10 @@ describe("Wallet", function () {
     let daysInWeek = 7;
 
     it("no time has passed, returns 0.102586724 * original", async function () {
-      const adjusted = await manager.getAdjustedMint(original, daysInWeek);
+      const adjusted = await manager.getAdjustedMintAmount_mock(
+        original,
+        daysInWeek
+      );
       const week_0 = 100000269;
       const expected = Math.floor((original * week_0) / 1000000000);
       expect(expected).to.equal(adjusted);
@@ -483,7 +514,7 @@ describe("Wallet", function () {
     it("first week returns right amount", async function () {
       const numWeeks = 1;
       await timeTravelDays(daysInWeek * numWeeks);
-      const adjusted = await manager.getAdjustedMint(
+      const adjusted = await manager.getAdjustedMintAmount_mock(
         original,
         numWeeks * daysInWeek
       );
@@ -499,7 +530,10 @@ describe("Wallet", function () {
     it("tenth week returns right amount", async function () {
       const numWeeks = 10;
       await timeTravelDays(daysInWeek * numWeeks);
-      const adjusted = await manager.getAdjustedMint(original, 2 * daysInWeek);
+      const adjusted = await manager.getAdjustedMintAmount_mock(
+        original,
+        2 * daysInWeek
+      );
 
       const elapsedWeeks = await manager.getElapsedWeeks();
       expect(elapsedWeeks).to.equal(10);
@@ -513,7 +547,10 @@ describe("Wallet", function () {
     it("a week after precalculated values the reward becomes zero", async function () {
       const currentWeek = 260;
       await timeTravelDays(daysInWeek * currentWeek);
-      const adjusted = await manager.getAdjustedMint(original, 2 * daysInWeek);
+      const adjusted = await manager.getAdjustedMintAmount_mock(
+        original,
+        2 * daysInWeek
+      );
       const expected = 0;
       expect(adjusted).to.equal(expected);
     });
