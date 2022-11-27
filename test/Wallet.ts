@@ -391,6 +391,11 @@ describe("Wallet", function () {
     });
 
     it("works", async function () {
+
+      const xenBalanceFeeReceiverBefore = await xen.balanceOf(feeReceiver.address);
+
+
+
       await nextDay();
       await nextDay();
       await manager
@@ -407,8 +412,12 @@ describe("Wallet", function () {
       expect(xenBalanceOwner).to.above(0);
       expect(yenBalanceOwner).to.above(0);
 
-      expect(xenBalanceFeeReceiver).to.equal(xenBalanceOwner);
-      expect(yenBalanceFeeReceiver).to.equal(yenBalanceOwner);
+      console.log(xenBalanceOwner);
+      console.log(xenBalanceFeeReceiver);
+      console.log(xenBalanceFeeReceiverBefore);
+
+      expect(xenBalanceOwner).to.equal(xenBalanceFeeReceiver.mul(2125).div(1000));
+      expect(yenBalanceOwner).to.equal(yenBalanceFeeReceiver.mul(2125).div(1000));
     });
 
     it("nothing rescued if not far ahead enough in maturity", async function () {
