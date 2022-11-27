@@ -376,10 +376,6 @@ describe("Wallet", function () {
         manager.connect(deployer).batchClaimAndTransferMintReward(0, 0)
       ).to.be.reverted;
     });
-
-    describe("Token assignment", function () {
-      // TODO: add lots of tests utilizing function 'assignRescueTokens_mock'
-    });
   });
 
   describe("Rescue", function () {
@@ -391,10 +387,9 @@ describe("Wallet", function () {
     });
 
     it("works", async function () {
-
-      const xenBalanceFeeReceiverBefore = await xen.balanceOf(feeReceiver.address);
-
-
+      const xenBalanceFeeReceiverBefore = await xen.balanceOf(
+        feeReceiver.address
+      );
 
       await nextDay();
       await nextDay();
@@ -416,8 +411,12 @@ describe("Wallet", function () {
       console.log(xenBalanceFeeReceiver);
       console.log(xenBalanceFeeReceiverBefore);
 
-      expect(xenBalanceOwner).to.equal(xenBalanceFeeReceiver.mul(2125).div(1000));
-      expect(yenBalanceOwner).to.equal(yenBalanceFeeReceiver.mul(2125).div(1000));
+      expect(xenBalanceOwner).to.equal(
+        xenBalanceFeeReceiver.mul(2125).div(1000)
+      );
+      expect(yenBalanceOwner).to.equal(
+        yenBalanceFeeReceiver.mul(2125).div(1000)
+      );
     });
 
     it("nothing rescued if not far ahead enough in maturity", async function () {
