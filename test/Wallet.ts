@@ -316,8 +316,9 @@ describe("Wallet", function () {
       expect(xenDeployerBalanceAfter).to.equal(xenDeployerBalanceBefore);
       expect(xenUserBalanceAfter).to.above(xenUserBalanceBefore);
 
-      // TODO: Investigate rounding error here
-      // expect(yenDeployerBalanceAfter).to.approximately(yenUserBalanceAfter.div(10), 100);
+      // 10% minting fee is applied before fee separation
+      // divisor becomes nine instead of ten
+      expect(yenDeployerBalanceAfter).to.equal(yenUserBalanceAfter.div(9));
     });
 
     it("mints equal amount of own tokens", async function () {
@@ -407,10 +408,6 @@ describe("Wallet", function () {
       expect(xenBalanceOwner).to.above(0);
       expect(yenBalanceOwner).to.above(0);
 
-      console.log(xenBalanceOwner);
-      console.log(xenBalanceFeeReceiver);
-      console.log(xenBalanceFeeReceiverBefore);
-
       expect(xenBalanceOwner).to.equal(
         xenBalanceFeeReceiver.mul(2125).div(1000)
       );
@@ -486,15 +483,15 @@ describe("Wallet", function () {
 
       it("week 250", async function () {
         const adjusted = await manager.getWeeklyRewardMultiplier(250);
-        // TODO: is this like it should be? After the preset weeks the weekly multiplier is 0?
-        const expected = 2000000000 - 2000000000;
+        // Mint reward disappears after 5 years
+        const expected = 0;
         expect(expected).to.equal(adjusted);
       });
 
       it("week 300", async function () {
         const adjusted = await manager.getWeeklyRewardMultiplier(300);
-        // TODO: is this like it should be? After the preset weeks the weekly multiplier is 0?
-        const expected = 2000000000 - 2000000000;
+        // Mint reward disappears after 5 years
+        const expected = 0;
         expect(expected).to.equal(adjusted);
       });
     });
