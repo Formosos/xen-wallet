@@ -496,7 +496,45 @@ describe("Wallet", function () {
       });
     });
 
-    // TODO: copy paste similar 'describe' sections for functions 'getRewardMultiplier' and 'getCumulativeWeeklyRewardMultiplier'
+    describe("Reward multiplier calculation", function () {
+      it("week 1", async function () {
+        const adjusted = await manager.getRewardMultiplier(1, 1);
+        const expected = 195000526;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 50", async function () {
+        const adjusted = await manager.getRewardMultiplier(50, 0);
+        const expected = 1853809547 - 1846115029;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("week 100", async function () {
+        const adjusted = await manager.getRewardMultiplier(100, 1);
+        const expected = 1988756359 - 1987541089;
+        expect(expected).to.equal(adjusted);
+      });
+    });
+
+    describe("Cumulative reward multiplier calculation", function () {
+      it("index < 0", async function () {
+        const adjusted = await manager.getCumulativeWeeklyRewardMultiplier(-1);
+        const expected = 0;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("index 50", async function () {
+        const adjusted = await manager.getCumulativeWeeklyRewardMultiplier(50);
+        const expected = 1853809547;
+        expect(expected).to.equal(adjusted);
+      });
+
+      it("index 100", async function () {
+        const adjusted = await manager.getCumulativeWeeklyRewardMultiplier(100);
+        const expected = 1988756359;
+        expect(expected).to.equal(adjusted);
+      });
+    });
   });
 
   describe("Mint amount calculations", function () {
