@@ -4,12 +4,14 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
 
 contract XENWalletManager is Ownable {
     using Clones for address;
+    using SafeERC20 for IXENCrypto;
 
     event WalletsCreated(address indexed owner, uint256 amount, uint256 term);
     event TokensRescued(address indexed owner, uint256 startId, uint256 endId);
@@ -306,8 +308,8 @@ contract XENWalletManager is Ownable {
         yenCrypto.mint(feeReceiver, mintFee);
 
         // Transfer XEN tokens
-        xenCrypto.transfer(owner, rescued - xenFee);
-        xenCrypto.transfer(feeReceiver, xenFee);
+        xenCrypto.safeTransfer(owner, rescued - xenFee);
+        xenCrypto.safeTransfer(feeReceiver, xenFee);
     }
 
     /**
