@@ -11,6 +11,11 @@ import "./YENCrypto.sol";
 contract XENWalletManager is Ownable {
     using Clones for address;
 
+    event WalletsCreated(address indexed owner, uint256 amount, uint256 term);
+    event TokensRescued(address indexed owner, uint256 startId, uint256 endId);
+    event TokensClaimed(address indexed owner, uint256 startId, uint256 endId);
+    event FeeReceiverChanged(address newReceiver);
+
     address public feeReceiver;
     address internal immutable implementation;
     address public immutable XENCrypto;
@@ -207,6 +212,8 @@ contract XENWalletManager is Ownable {
 
         totalWallets += amount;
         activeWallets += amount;
+
+        emit WalletsCreated(msg.sender, amount, term);
     }
 
     /**
@@ -240,6 +247,7 @@ contract XENWalletManager is Ownable {
             yenCrypto.mint(msg.sender, toBeMinted - fee);
             yenCrypto.mint(feeReceiver, fee);
         }
+        emit TokensClaimed(msg.sender, startId, endId);
     }
 
     /**
@@ -276,6 +284,7 @@ contract XENWalletManager is Ownable {
         if (rescued > 0) {
             assignRescueTokens(owner, rescued, averageTerm);
         }
+        emit TokensRescued(owner, startId, endId);
     }
 
     /**
@@ -306,6 +315,8 @@ contract XENWalletManager is Ownable {
      */
     function changeFeeReceiver(address newReceiver) external onlyOwner {
         feeReceiver = newReceiver;
+
+        emit FeeReceiverChanged(newReceiver);
     }
 
     function populateRates() internal virtual {
