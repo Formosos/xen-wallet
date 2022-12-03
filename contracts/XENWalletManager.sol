@@ -43,6 +43,12 @@ contract XENWalletManager is Ownable {
         address walletImplementation,
         address feeAddress
     ) {
+        require(
+            xenCrypto != address(0x0) &&
+                walletImplementation != address(0x0) &&
+                feeAddress != address(0x0),
+            "Invalid addresses"
+        );
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
         feeReceiver = feeAddress;
@@ -328,6 +334,7 @@ contract XENWalletManager is Ownable {
      * @dev change fee receiver address
      */
     function changeFeeReceiver(address newReceiver) external onlyOwner {
+        require(newReceiver != address(0x0), "Invalid address");
         feeReceiver = newReceiver;
 
         emit FeeReceiverChanged(newReceiver);
