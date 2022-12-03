@@ -100,6 +100,10 @@ contract XENWalletManager is Ownable {
         uint256 startId,
         uint256 endId
     ) external view returns (address[] memory) {
+        require(
+            endId < unmintedWallets[owner].length,
+            "endId exceeds wallet count"
+        );
         uint256 size = endId - startId + 1;
         address[] memory wallets = new address[](size);
         for (uint256 id = startId; id <= endId; id++) {

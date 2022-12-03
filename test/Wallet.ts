@@ -261,9 +261,18 @@ describe("Wallet", function () {
 
     it("fails when querying for non-existing wallets", async function () {
       await manager.batchCreateWallets(5, 50);
+
+      await expect(
+        manager.getWallets(deployer.address, 2, 5)
+      ).to.be.revertedWith("endId exceeds wallet count");
+
+      await expect(
+        manager.getWallets(deployer.address, 5, 6)
+      ).to.be.revertedWith("endId exceeds wallet count");
+
       await expect(
         manager.getWallets(deployer.address, 2, 20)
-      ).to.be.revertedWithPanic(PANIC_CODES.ARRAY_ACCESS_OUT_OF_BOUNDS);
+      ).to.be.revertedWith("endId exceeds wallet count");
     });
   });
 
