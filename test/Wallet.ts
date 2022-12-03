@@ -342,6 +342,23 @@ describe("Wallet", function () {
       );
     });
 
+    it("test different term limits", async function () {
+      await manager.connect(deployer).batchCreateWallets(1, 100);
+      await timeTravelDays(50);
+      await manager.connect(deployer).batchCreateWallets(1, 50);
+      await timeTravelDays(50);
+
+      await manager.connect(deployer).batchClaimAndTransferMintReward(5, 6);
+      const yenBalanceOwner = await yen.balanceOf(deployer.address);
+
+      // calculate rewards separately
+      const yen100 = BigNumber.from("150291190971900000000000");
+      const yen50 = BigNumber.from("32341837208175000000000");
+      const subTotal = yen50.add(yen100);
+
+      expect(yenBalanceOwner).to.below(subTotal);
+    });
+
     it("zeroes wallets", async function () {
       await manager.connect(deployer).batchClaimAndTransferMintReward(0, 4);
       wallets = await manager.getWallets(deployer.address, 0, 4);
