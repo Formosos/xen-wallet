@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
+import "hardhat/console.sol";
 
 contract XENWalletManager is Ownable {
     using Clones for address;
@@ -226,30 +227,38 @@ contract XENWalletManager is Ownable {
     {
         require(endId >= startId, "Forward ordering");
 
-        uint256 claimed = 0;
-        uint256 averageTerm = 0;
-        uint256 walletRange = endId - startId + 1;
+        uint256 claimedTotal = 0;
+        uint256 weightedTerm = 0;
+        uint256 claimedWallets = 0;
 
         for (uint256 id = startId; id <= endId; id++) {
             address proxy = unmintedWallets[msg.sender][id];
-
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
-            averageTerm += info.term;
+            uint256 claimed = XENWallet(proxy).claimAndTransferMintReward(
+                msg.sender
+            );
 
-            claimed += XENWallet(proxy).claimAndTransferMintReward(msg.sender);
+            weightedTerm += (info.term * claimed);
+            claimedTotal += claimed;
+            claimedWallets += 1;
+
             unmintedWallets[msg.sender][id] = address(0x0);
         }
 
-        averageTerm = averageTerm / walletRange;
-        activeWallets -= walletRange;
+        if (claimedTotal > 0) {
+            weightedTerm = weightedTerm / claimedTotal;
+            activeWallets -= claimedWallets;
 
-        if (claimed > 0) {
-            uint256 toBeMinted = getAdjustedMintAmount(claimed, averageTerm);
+            uint256 toBeMinted = getAdjustedMintAmount(
+                claimedTotal,
+                weightedTerm
+            );
             uint256 fee = (toBeMinted * MINT_FEE) / 10_000; // reduce minting fee
             yenCrypto.mint(msg.sender, toBeMinted - fee);
             yenCrypto.mint(feeReceiver, fee);
+
+            emit TokensClaimed(msg.sender, startId, endId);
         }
-        emit TokensClaimed(msg.sender, startId, endId);
     }
 
     /**
@@ -262,31 +271,33 @@ contract XENWalletManager is Ownable {
     ) external onlyOwner {
         require(endId >= startId, "Forward ordering");
 
-        uint256 rescued = 0;
-        uint256 averageTerm = 0;
-        uint256 walletRange = endId - startId + 1;
+        uint256 rescuedTotal = 0;
+        uint256 weightedTerm = 0;
+        uint256 rescuedWallets = 0;
 
         for (uint256 id = startId; id <= endId; id++) {
             address proxy = unmintedWallets[owner][id];
 
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
-            averageTerm += info.term;
 
             if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
-                rescued += XENWallet(proxy).claimAndTransferMintReward(
+                uint256 rescued = XENWallet(proxy).claimAndTransferMintReward(
                     address(this)
                 );
+                weightedTerm += info.term * rescued;
+                rescuedTotal += rescued;
+                rescuedWallets += 1;
                 unmintedWallets[owner][id] = address(0x0);
             }
         }
 
-        averageTerm = averageTerm / walletRange;
-        activeWallets -= walletRange;
+        if (rescuedTotal > 0) {
+            weightedTerm = weightedTerm / rescuedTotal;
+            activeWallets -= rescuedWallets;
 
-        if (rescued > 0) {
-            assignRescueTokens(owner, rescued, averageTerm);
+            assignRescueTokens(owner, rescuedTotal, weightedTerm);
+            emit TokensRescued(owner, startId, endId);
         }
-        emit TokensRescued(owner, startId, endId);
     }
 
     /**
@@ -295,11 +306,11 @@ contract XENWalletManager is Ownable {
     function assignRescueTokens(
         address owner,
         uint256 rescued,
-        uint256 averageTerm
+        uint256 term
     ) internal virtual {
         IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
 
-        uint256 toBeMinted = getAdjustedMintAmount(rescued, averageTerm);
+        uint256 toBeMinted = getAdjustedMintAmount(rescued, term);
         uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
         uint256 mintFee = (toBeMinted * RESCUE_FEE) / 10_000;
 
