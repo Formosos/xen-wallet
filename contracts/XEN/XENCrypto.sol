@@ -47,7 +47,7 @@ contract XENCrypto is
     uint256 public constant GENESIS_RANK = 1;
 
     uint256 public constant MIN_TERM = 1 * SECONDS_IN_DAY - 1;
-    uint256 public constant MAX_TERM_START = 100 * SECONDS_IN_DAY;
+    uint256 public constant MAX_TERM_START = 1_000 * SECONDS_IN_DAY;
     uint256 public constant MAX_TERM_END = 1_000 * SECONDS_IN_DAY;
     uint256 public constant TERM_AMPLIFIER = 15;
     uint256 public constant TERM_AMPLIFIER_THRESHOLD = 5_000;

@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
 import "./YENCrypto.sol";
-import "hardhat/console.sol";
 
 contract XENWalletManager is Ownable {
     using Clones for address;
@@ -35,6 +34,7 @@ contract XENWalletManager is Ownable {
     uint256 internal constant SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
     uint256 internal constant MIN_TOKEN_MINT_TERM = 50;
     uint256 internal constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
+    uint256 internal constant MIN_RESCUE_LIMIT = 365;
     uint256 internal constant RESCUE_FEE = 3_200; // 32%
     uint256 internal constant MINT_FEE = 1_000; // 10%
 
@@ -279,6 +279,7 @@ contract XENWalletManager is Ownable {
             address proxy = unmintedWallets[owner][id];
 
             IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
+            require(info.term >= MIN_RESCUE_LIMIT, "Not allowed to rescue");
 
             if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
                 uint256 rescued = XENWallet(proxy).claimAndTransferMintReward(

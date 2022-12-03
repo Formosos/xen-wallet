@@ -396,12 +396,22 @@ describe("Wallet", function () {
     });
   });
 
+
+
   describe("Rescue", function () {
     let wallets: string[];
     beforeEach(async function () {
-      await manager.connect(user2).batchCreateWallets(2, 50);
+      await manager.connect(user2).batchCreateWallets(2, 365);
       wallets = await manager.getWallets(user2.address, 0, 1);
-      await timeTravelDays(50);
+      await timeTravelDays(365);
+    });
+
+    it("fails", async function() {
+      await manager.connect(user2).batchCreateWallets(2, 100);
+      await timeTravelDays(100);
+      await expect(
+        manager.connect(deployer).batchClaimMintRewardRescue(user2.address, 3, 3)
+      ).to.be.revertedWith("Not allowed to rescue");
     });
 
     it("works", async function () {
