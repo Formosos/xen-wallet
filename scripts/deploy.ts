@@ -61,7 +61,7 @@ async function main() {
   );
   await _manager.deployed();
 
-  const _yenToken = await _manager.yenCrypto();
+  const _xelToken = await _manager.xelCrypto();
 
   if (network.name != "localhost" && network.name != "hardhat") {
     console.log("Deployments done, waiting for etherscan verifications");
@@ -75,7 +75,7 @@ async function main() {
 
     await verify(_wallet.address, []);
     await verify(_manager.address, [xenAddress, _wallet.address, feeReceiver]);
-    await verify(_yenToken, [_manager.address]);
+    await verify(_xelToken, [_manager.address]);
 
     if (fs.existsSync(addressFile)) {
       fs.rmSync(addressFile);
@@ -96,13 +96,13 @@ async function main() {
     writeAddr(_manager.address, "Wallet manager");
     writeAddr(xenAddress, "XENCrypto");
     writeAddr(_wallet.address, "Initial wallet");
-    writeAddr(_yenToken, "YEN token");
+    writeAddr(_xelToken, "XEL token");
     writeAddr(_math.address, "Math library");
   }
 
   console.log("Deployments done");
   console.log(`XENCrypto: ${xenAddress}, Initial wallet: ${_wallet.address}, 
-  Wallet manager: ${_manager.address}, YEN token: ${_yenToken}, Math library: ${_math.address}`);
+  Wallet manager: ${_manager.address}, XEL token: ${_xelToken}, Math library: ${_math.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

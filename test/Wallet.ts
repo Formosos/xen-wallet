@@ -5,7 +5,7 @@ import { ethers, network } from "hardhat";
 import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  YENCrypto,
+  XELCrypto,
   XENCrypto,
   XENWallet,
   XENWalletManager,
@@ -42,28 +42,28 @@ describe("Wallet", function () {
       _feeReceiver.address
     );
 
-    const YEN = await _manager.yenCrypto();
-    const _yen = await ethers.getContractAt("YENCrypto", YEN);
+    const XEL = await _manager.xelCrypto();
+    const _xel = await ethers.getContractAt("XELCrypto", XEL);
 
-    return { _xen, _wallet, _manager, _yen, _deployer, _feeReceiver, _user2 };
+    return { _xen, _wallet, _manager, _xel, _deployer, _feeReceiver, _user2 };
   }
 
   let xen: XENCrypto,
     wallet: XENWallet,
     manager: MockManager,
-    yen: YENCrypto,
+    xel: XELCrypto,
     deployer: SignerWithAddress,
     feeReceiver: SignerWithAddress,
     user2: SignerWithAddress;
 
   beforeEach(async function () {
-    const { _xen, _wallet, _manager, _yen, _deployer, _feeReceiver, _user2 } =
+    const { _xen, _wallet, _manager, _xel, _deployer, _feeReceiver, _user2 } =
       await loadFixture(deployWalletFixture);
 
     xen = _xen;
     wallet = _wallet;
     manager = _manager;
-    yen = _yen;
+    xel = _xel;
     deployer = _deployer;
     feeReceiver = _feeReceiver;
     user2 = _user2;
@@ -80,7 +80,7 @@ describe("Wallet", function () {
       expect(factoryXen).to.equal(xen.address);
       expect(factoryDeployer).to.equal(deployer.address);
       expect(factoryImplementation).to.equal(wallet.address);
-      expect(yen).to.not.empty;
+      expect(xel).to.not.empty;
     });
   });
 
@@ -293,10 +293,10 @@ describe("Wallet", function () {
       expect(xenBalanceAfter).to.above(0);
 
       const xenBalanceOwner = await xen.balanceOf(deployer.address);
-      const yenBalanceOwner = await yen.balanceOf(deployer.address);
+      const xelBalanceOwner = await xel.balanceOf(deployer.address);
 
       expect(xenBalanceOwner).to.above(0);
-      expect(yenBalanceOwner).to.above(xenBalanceOwner.div(2));
+      expect(xelBalanceOwner).to.above(xenBalanceOwner.div(2));
     });
 
     it("works for multiple users", async function () {
@@ -305,29 +305,29 @@ describe("Wallet", function () {
 
       const feeReceiverAddress = await manager.feeReceiver();
 
-      const yenDeployerBalanceBefore = await yen.balanceOf(feeReceiverAddress);
-      const yenUserBalanceBefore = await yen.balanceOf(user2.address);
+      const xelDeployerBalanceBefore = await xel.balanceOf(feeReceiverAddress);
+      const xelUserBalanceBefore = await xel.balanceOf(user2.address);
 
       const xenDeployerBalanceBefore = await xen.balanceOf(feeReceiverAddress);
       const xenUserBalanceBefore = await xen.balanceOf(user2.address);
 
       await manager.connect(user2).batchClaimAndTransferMintReward(0, 4);
 
-      const yenDeployerBalanceAfter = await yen.balanceOf(feeReceiverAddress);
-      const yenUserBalanceAfter = await yen.balanceOf(user2.address);
+      const xelDeployerBalanceAfter = await xel.balanceOf(feeReceiverAddress);
+      const xelUserBalanceAfter = await xel.balanceOf(user2.address);
 
       const xenDeployerBalanceAfter = await xen.balanceOf(feeReceiverAddress);
       const xenUserBalanceAfter = await xen.balanceOf(user2.address);
 
-      expect(yenDeployerBalanceAfter).to.above(yenDeployerBalanceBefore);
-      expect(yenUserBalanceAfter).to.above(yenUserBalanceBefore);
+      expect(xelDeployerBalanceAfter).to.above(xelDeployerBalanceBefore);
+      expect(xelUserBalanceAfter).to.above(xelUserBalanceBefore);
 
       expect(xenDeployerBalanceAfter).to.equal(xenDeployerBalanceBefore);
       expect(xenUserBalanceAfter).to.above(xenUserBalanceBefore);
 
       // 10% minting fee is applied before fee separation
       // divisor becomes nine instead of ten
-      expect(yenDeployerBalanceAfter).to.equal(yenUserBalanceAfter.div(9));
+      expect(xelDeployerBalanceAfter).to.equal(xelUserBalanceAfter.div(9));
     });
 
     it("mints equal amount of own tokens", async function () {
@@ -336,17 +336,17 @@ describe("Wallet", function () {
       await manager.connect(deployer).batchClaimAndTransferMintReward(5, 9);
 
       const xenBalanceOwner = await xen.balanceOf(deployer.address);
-      const yenBalanceOwner = await yen.balanceOf(deployer.address);
+      const xelBalanceOwner = await xel.balanceOf(deployer.address);
       const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
-      const ownBalanceFeeReceiver = await yen.balanceOf(feeReceiver.address);
+      const ownBalanceFeeReceiver = await xel.balanceOf(feeReceiver.address);
 
       expect(xenBalanceOwner).to.above(0);
-      expect(yenBalanceOwner).to.above(0);
+      expect(xelBalanceOwner).to.above(0);
       expect(xenBalanceFeeReceiver).to.equal(0);
       expect(ownBalanceFeeReceiver).to.above(0);
 
       expect(ownBalanceFeeReceiver.mul(9)).to.approximately(
-        yenBalanceOwner,
+        xelBalanceOwner,
         10
       );
     });
@@ -358,14 +358,14 @@ describe("Wallet", function () {
       await timeTravelDays(50);
 
       await manager.connect(deployer).batchClaimAndTransferMintReward(5, 6);
-      const yenBalanceOwner = await yen.balanceOf(deployer.address);
+      const xelBalanceOwner = await xel.balanceOf(deployer.address);
 
       // calculate rewards separately
-      const yen100 = BigNumber.from("150291190971900000000000");
-      const yen50 = BigNumber.from("32341837208175000000000");
-      const subTotal = yen50.add(yen100);
+      const xel100 = BigNumber.from("150291190971900000000000");
+      const xel50 = BigNumber.from("32341837208175000000000");
+      const subTotal = xel50.add(xel100);
 
-      expect(yenBalanceOwner).to.below(subTotal);
+      expect(xelBalanceOwner).to.below(subTotal);
     });
 
     it("zeroes wallets", async function () {
@@ -435,20 +435,20 @@ describe("Wallet", function () {
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
       const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
-      const yenBalanceFeeReceiver = await yen.balanceOf(feeReceiver.address);
+      const xelBalanceFeeReceiver = await xel.balanceOf(feeReceiver.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
-      const yenBalanceOwner = await yen.balanceOf(user2.address);
+      const xelBalanceOwner = await xel.balanceOf(user2.address);
 
       expect(xenBalanceFeeReceiver).to.above(0);
-      expect(yenBalanceFeeReceiver).to.above(0);
+      expect(xelBalanceFeeReceiver).to.above(0);
       expect(xenBalanceOwner).to.above(0);
-      expect(yenBalanceOwner).to.above(0);
+      expect(xelBalanceOwner).to.above(0);
 
       expect(xenBalanceOwner).to.equal(
         xenBalanceFeeReceiver.mul(2125).div(1000)
       );
-      expect(yenBalanceOwner).to.equal(
-        yenBalanceFeeReceiver.mul(2125).div(1000)
+      expect(xelBalanceOwner).to.equal(
+        xelBalanceFeeReceiver.mul(2125).div(1000)
       );
     });
 
@@ -460,14 +460,14 @@ describe("Wallet", function () {
         .batchClaimMintRewardRescue(user2.address, 0, 1);
 
       const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
-      const ownBalanceFeeReceiver = await yen.balanceOf(feeReceiver.address);
+      const ownBalanceFeeReceiver = await xel.balanceOf(feeReceiver.address);
       const xenBalanceOwner = await xen.balanceOf(user2.address);
-      const yenBalanceOwner = await yen.balanceOf(user2.address);
+      const xelBalanceOwner = await xel.balanceOf(user2.address);
 
       expect(xenBalanceFeeReceiver).to.equal(0);
       expect(ownBalanceFeeReceiver).to.equal(0);
       expect(xenBalanceOwner).to.equal(0);
-      expect(yenBalanceOwner).to.equal(0);
+      expect(xelBalanceOwner).to.equal(0);
     });
 
     it("rescue zeroes wallets", async function () {

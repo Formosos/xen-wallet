@@ -66,7 +66,7 @@ The caller has to make sure, in advance, that all the wallets to be claimed are 
 
 Trying to claim too many wallets in one transaction will cause the entire transaction to revert.
 
-This function will also mint YEN tokens - more details about that are provided later in this document.
+This function will also mint XEL tokens - more details about that are provided later in this document.
 
 #### `batchClaimMintRewardRescue`
 
@@ -88,13 +88,13 @@ This contract is usable only through the manager contract. It mostly contains fu
 
 ## Minting
 
-When user batch claims (function `batchClaimAndTransferMintReward`) rewards he may be minted also YEN tokens. YEN tokens are minted if the wallet's _term_ has been more than 50 days.
+When user batch claims (function `batchClaimAndTransferMintReward`) rewards he may be minted also XEL tokens. XEL tokens are minted if the wallet's _term_ has been more than 50 days.
 
-YEN token minting has also a reward multiplier.
+XEL token minting has also a reward multiplier.
 
 #### `getCumulativeWeeklyRewardMultiplier`
 
-YEN is minted based on the amount of XEN claimed times a reward multiplier that is derived from our reward curve.
+XEL is minted based on the amount of XEN claimed times a reward multiplier that is derived from our reward curve.
 
 The reward curve is defined by `0.102586724 * 0.95^x` with `x` being the number of weeks that have passed. To derive the reward multiplier from this curve we need to sum up the multiplier from the curve for each week in which the user has claimed.
 
@@ -104,7 +104,7 @@ All of the cumulative rewards are stored in the `cumulativeWeeklyRewardMultiplie
 
 #### `getRewardMultiplier`
 
-Used to estimate and derive the mint reward multiplier for YEN.
+Used to estimate and derive the mint reward multiplier for XEL.
 
 Inputs:
 
