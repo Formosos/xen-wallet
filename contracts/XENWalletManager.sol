@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IXENCrypto.sol";
 import "./XENWallet.sol";
-import "./YENCrypto.sol";
+import "./XELCrypto.sol";
 
 contract XENWalletManager is Ownable {
     using Clones for address;
@@ -22,7 +22,7 @@ contract XENWalletManager is Ownable {
     address internal immutable implementation;
     address public immutable XENCrypto;
     uint256 public immutable deployTimestamp;
-    YENCrypto public immutable yenCrypto;
+    XELCrypto public immutable xelCrypto;
 
     uint256 public totalWallets;
     uint256 public activeWallets;
@@ -52,7 +52,7 @@ contract XENWalletManager is Ownable {
         XENCrypto = xenCrypto;
         implementation = walletImplementation;
         feeReceiver = feeAddress;
-        yenCrypto = new YENCrypto(address(this));
+        xelCrypto = new XELCrypto(address(this));
         deployTimestamp = block.timestamp;
 
         populateRates();
@@ -264,8 +264,8 @@ contract XENWalletManager is Ownable {
                 weightedTerm
             );
             uint256 fee = (toBeMinted * MINT_FEE) / 10_000; // reduce minting fee
-            yenCrypto.mint(msg.sender, toBeMinted - fee);
-            yenCrypto.mint(feeReceiver, fee);
+            xelCrypto.mint(msg.sender, toBeMinted - fee);
+            xelCrypto.mint(feeReceiver, fee);
 
             emit TokensClaimed(msg.sender, startId, endId);
         }
@@ -312,7 +312,7 @@ contract XENWalletManager is Ownable {
     }
 
     /**
-     * @dev mints and transfers YEN and XEN tokens in a token rescue
+     * @dev mints and transfers XEL and XEN tokens in a token rescue
      */
     function assignRescueTokens(
         address owner,
@@ -325,9 +325,9 @@ contract XENWalletManager is Ownable {
         uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
         uint256 mintFee = (toBeMinted * RESCUE_FEE) / 10_000;
 
-        // Mint YEN tokens
-        yenCrypto.mint(owner, toBeMinted - mintFee);
-        yenCrypto.mint(feeReceiver, mintFee);
+        // Mint XEL tokens
+        xelCrypto.mint(owner, toBeMinted - mintFee);
+        xelCrypto.mint(feeReceiver, mintFee);
 
         // Transfer XEN tokens
         xenCrypto.safeTransfer(owner, rescued - xenFee);
