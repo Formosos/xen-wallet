@@ -168,7 +168,6 @@ contract XENWalletManager is Ownable {
         view
         returns (uint256)
     {
-        require(finalWeek + 1 >= termWeeks, "Incorrect term format");
         return
             getCumulativeWeeklyRewardMultiplier(int256(finalWeek)) -
             getCumulativeWeeklyRewardMultiplier(
