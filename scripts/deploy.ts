@@ -66,7 +66,7 @@ async function main() {
   if (network.name != "localhost" && network.name != "hardhat") {
     console.log("Deployments done, waiting for etherscan verifications");
     // Wait for the contracts to be propagated inside Etherscan
-    await new Promise((f) => setTimeout(f, 60000));
+    await new Promise((f) => setTimeout(f, 120000));
 
     await verify(_math.address, []);
     if (xenDeployed) {
