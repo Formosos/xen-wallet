@@ -15,7 +15,15 @@ contract XENWalletManager is Ownable {
 
     event WalletsCreated(address indexed owner, uint256 amount, uint256 term);
     event TokensRescued(address indexed owner, uint256 startId, uint256 endId);
-    event TokensClaimed(address indexed owner, uint256 startId, uint256 endId);
+    event TokensClaimed(
+        address indexed owner,
+        uint256 totalXEN,
+        uint256 totalWallets,
+        uint256 weightedTerm,
+        uint256 weightedRank,
+        uint256 weightedMaturity,
+        uint256 totalXEL
+    );
     event FeeReceiverChanged(address newReceiver);
 
     address public feeReceiver;
@@ -237,8 +245,11 @@ contract XENWalletManager is Ownable {
         require(endId >= startId, "Forward ordering");
 
         uint256 claimedTotal = 0;
-        uint256 weightedTerm = 0;
         uint256 claimedWallets = 0;
+
+        uint256 weightedTerm = 0;
+        uint256 weightedRank = 0;
+        uint256 weightedMaturity = 0;
 
         for (uint256 id = startId; id <= endId; id++) {
             address proxy = unmintedWallets[msg.sender][id];
@@ -247,16 +258,22 @@ contract XENWalletManager is Ownable {
                 msg.sender
             );
 
-            weightedTerm += (info.term * claimed);
             claimedTotal += claimed;
             claimedWallets += 1;
+
+            weightedTerm += (info.term * claimed);
+            weightedRank += (info.rank * claimed);
+            weightedMaturity += (info.maturityTs * claimed);
 
             unmintedWallets[msg.sender][id] = address(0x0);
         }
 
         if (claimedTotal > 0) {
-            weightedTerm = weightedTerm / claimedTotal;
             activeWallets -= claimedWallets;
+
+            weightedTerm = weightedTerm / claimedTotal;
+            weightedRank = weightedRank / claimedTotal;
+            weightedMaturity = weightedMaturity / claimedTotal;
 
             uint256 toBeMinted = getAdjustedMintAmount(
                 claimedTotal,
@@ -266,7 +283,15 @@ contract XENWalletManager is Ownable {
             xelCrypto.mint(msg.sender, toBeMinted - fee);
             xelCrypto.mint(feeReceiver, fee);
 
-            emit TokensClaimed(msg.sender, startId, endId);
+            emit TokensClaimed(
+                msg.sender,
+                claimedTotal,
+                claimedWallets,
+                weightedTerm,
+                weightedRank,
+                weightedMaturity,
+                toBeMinted - fee
+            );
         }
     }
 
