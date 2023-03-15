@@ -16,7 +16,6 @@ The contract requires three arguments upon deployment:
 
 1. `xenCrypto`: The address of the already deployed XENCrypto contract to utilize
 1. `walletImplementation`: The address of the already deployed XENWallet reference implementation. One wallet needs to be deployed in advance so all subsequent wallets can copy that contract's code
-1. `rescueFeeAddress`: Address which receives rescue fees from the contract
 
 #### `batchCreateWallets`
 
@@ -67,20 +66,6 @@ The caller has to make sure, in advance, that all the wallets to be claimed are 
 Trying to claim too many wallets in one transaction will cause the entire transaction to revert.
 
 This function will also mint XEL tokens - more details about that are provided later in this document.
-
-#### `batchClaimMintRewardRescue`
-
-Used to rescue wallets whose XEN rewards are about to expire.
-
-Inputs:
-
-1. `owner`: The owner whose wallets to rescue
-1. `startId`: Starting index for the wallets to rescue
-1. `endId`: Ending index.
-
-A rescue can only be performed if the wallet's maturity has been exceeded by at least 2 days.
-
-A rescue fee is deducted for each wallet and sent to the rescue address given in the contract constructor.
 
 ### XENWallet contract
 
