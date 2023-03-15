@@ -381,10 +381,10 @@ describe("Wallet", function () {
 
     it("fails when not all wallets in range have matured", async function () {
       // create more wallets with longer term
-      await manager.connect(deployer).batchCreateWallets(5, 53);
+      await manager.connect(deployer).batchCreateWallets(5, 1000);
       // create more wallets with short term
-      await manager.connect(deployer).batchCreateWallets(2, 51);
-      await timeTravelDays(52);
+      await manager.connect(deployer).batchCreateWallets(2, 980);
+      await timeTravelDays(990);
 
       await expect(
         manager.connect(deployer).batchClaimAndTransferMintReward(0, 11)
@@ -402,92 +402,6 @@ describe("Wallet", function () {
       await expect(
         manager.connect(deployer).batchClaimAndTransferMintReward(0, 0)
       ).to.be.reverted;
-    });
-  });
-
-
-
-  describe("Rescue", function () {
-    let wallets: string[];
-    beforeEach(async function () {
-      await manager.connect(user2).batchCreateWallets(2, 365);
-      wallets = await manager.getWallets(user2.address, 0, 1);
-      await timeTravelDays(365);
-    });
-
-    it("fails", async function() {
-      await manager.connect(user2).batchCreateWallets(2, 100);
-      await timeTravelDays(100);
-      await expect(
-        manager.connect(deployer).batchClaimMintRewardRescue(user2.address, 3, 3)
-      ).to.be.revertedWith("Not allowed to rescue");
-    });
-
-    it("works", async function () {
-      const xenBalanceFeeReceiverBefore = await xen.balanceOf(
-        feeReceiver.address
-      );
-
-      await nextDay();
-      await nextDay();
-      await manager
-        .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 0, 1);
-
-      const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
-      const xelBalanceFeeReceiver = await xel.balanceOf(feeReceiver.address);
-      const xenBalanceOwner = await xen.balanceOf(user2.address);
-      const xelBalanceOwner = await xel.balanceOf(user2.address);
-
-      expect(xenBalanceFeeReceiver).to.above(0);
-      expect(xelBalanceFeeReceiver).to.above(0);
-      expect(xenBalanceOwner).to.above(0);
-      expect(xelBalanceOwner).to.above(0);
-
-      expect(xenBalanceOwner).to.equal(
-        xenBalanceFeeReceiver.mul(2125).div(1000)
-      );
-      expect(xelBalanceOwner).to.equal(
-        xelBalanceFeeReceiver.mul(2125).div(1000)
-      );
-    });
-
-    it("nothing rescued if not far ahead enough in maturity", async function () {
-      await nextDay();
-
-      await manager
-        .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 0, 1);
-
-      const xenBalanceFeeReceiver = await xen.balanceOf(feeReceiver.address);
-      const ownBalanceFeeReceiver = await xel.balanceOf(feeReceiver.address);
-      const xenBalanceOwner = await xen.balanceOf(user2.address);
-      const xelBalanceOwner = await xel.balanceOf(user2.address);
-
-      expect(xenBalanceFeeReceiver).to.equal(0);
-      expect(ownBalanceFeeReceiver).to.equal(0);
-      expect(xenBalanceOwner).to.equal(0);
-      expect(xelBalanceOwner).to.equal(0);
-    });
-
-    it("rescue zeroes wallets", async function () {
-      await nextDay();
-      await nextDay();
-
-      await manager
-        .connect(deployer)
-        .batchClaimMintRewardRescue(user2.address, 0, 1);
-
-      wallets = await manager.getWallets(user2.address, 0, 1);
-
-      expect(wallets[0]).to.equal(ethers.constants.AddressZero);
-      expect(wallets[1]).to.equal(ethers.constants.AddressZero);
-    });
-
-    it("fails if called by non-owner", async function () {
-      await expect(
-        manager.connect(user2).batchClaimMintRewardRescue(user2.address, 5, 5)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 

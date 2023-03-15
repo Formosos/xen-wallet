@@ -14,7 +14,6 @@ contract XENWalletManager is Ownable {
     using SafeERC20 for IXENCrypto;
 
     event WalletsCreated(address indexed owner, uint256 amount, uint256 term);
-    event TokensRescued(address indexed owner, uint256 startId, uint256 endId);
     event TokensClaimed(
         address indexed owner,
         uint256 totalXEN,
@@ -42,8 +41,6 @@ contract XENWalletManager is Ownable {
     uint256 internal constant SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
     uint256 internal constant MIN_TOKEN_MINT_TERM = 50;
     uint256 internal constant MIN_REWARD_LIMIT = SECONDS_IN_DAY * 2;
-    uint256 internal constant MIN_RESCUE_LIMIT = 365;
-    uint256 internal constant RESCUE_FEE = 3_200; // 32%
     uint256 internal constant MINT_FEE = 1_000; // 10%
 
     constructor(
@@ -293,69 +290,6 @@ contract XENWalletManager is Ownable {
                 toBeMinted - fee
             );
         }
-    }
-
-    /**
-     * @dev rescues rewards which are about to expire, from the given owner
-     */
-    function batchClaimMintRewardRescue(
-        address owner,
-        uint256 startId,
-        uint256 endId
-    ) external onlyOwner {
-        require(endId >= startId, "Forward ordering");
-
-        uint256 rescuedTotal = 0;
-        uint256 weightedTerm = 0;
-        uint256 rescuedWallets = 0;
-
-        for (uint256 id = startId; id <= endId; id++) {
-            address proxy = unmintedWallets[owner][id];
-
-            IXENCrypto.MintInfo memory info = XENWallet(proxy).getUserMint();
-            require(info.term >= MIN_RESCUE_LIMIT, "Not allowed to rescue");
-
-            if (block.timestamp > info.maturityTs + MIN_REWARD_LIMIT) {
-                uint256 rescued = XENWallet(proxy).claimAndTransferMintReward(
-                    address(this)
-                );
-                weightedTerm += info.term * rescued;
-                rescuedTotal += rescued;
-                rescuedWallets += 1;
-                unmintedWallets[owner][id] = address(0x0);
-            }
-        }
-
-        if (rescuedTotal > 0) {
-            weightedTerm = weightedTerm / rescuedTotal;
-            activeWallets -= rescuedWallets;
-
-            assignRescueTokens(owner, rescuedTotal, weightedTerm);
-            emit TokensRescued(owner, startId, endId);
-        }
-    }
-
-    /**
-     * @dev mints and transfers XEL and XEN tokens in a token rescue
-     */
-    function assignRescueTokens(
-        address owner,
-        uint256 rescued,
-        uint256 term
-    ) internal virtual {
-        IXENCrypto xenCrypto = IXENCrypto(XENCrypto);
-
-        uint256 toBeMinted = getAdjustedMintAmount(rescued, term);
-        uint256 xenFee = (rescued * RESCUE_FEE) / 10_000;
-        uint256 mintFee = (toBeMinted * RESCUE_FEE) / 10_000;
-
-        // Mint XEL tokens
-        xelCrypto.mint(owner, toBeMinted - mintFee);
-        xelCrypto.mint(feeReceiver, mintFee);
-
-        // Transfer XEN tokens
-        xenCrypto.safeTransfer(owner, rescued - xenFee);
-        xenCrypto.safeTransfer(feeReceiver, xenFee);
     }
 
     /**
