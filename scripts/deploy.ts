@@ -22,7 +22,7 @@ async function main() {
   const accounts = await hre.ethers.getSigners();
 
   const deployer = accounts[0];
-  const feeReceiver = process.env.GOERLI_FEE_RECEIVER_ADDRESS;
+  const feeReceiver = process.env.MAINNET_FEE_RECEIVER_ADDRESS;
 
   if (!feeReceiver || !deployer) {
     throw "Invalid config";
@@ -37,7 +37,7 @@ async function main() {
     },
   });
 
-  let xenAddress = process.env.GOERLI_XEN_ADDRESS;
+  let xenAddress = process.env.MAINNET_XEN_ADDRESS;
   let xenDeployed = false;
 
   if (!xenAddress) {
@@ -83,13 +83,13 @@ async function main() {
 
     fs.appendFileSync(
       addressFile,
-      "This file contains the latest test deployment addresses in the Goerli network<br/>"
+      "This file contains the latest test deployment addresses in the Ethereum network<br/>"
     );
 
     const writeAddr = (addr: string, name: string) => {
       fs.appendFileSync(
         addressFile,
-        `${name}: [https://goerli.etherscan.io/address/${addr}](https://goerli.etherscan.io/address/${addr})<br/>`
+        `${name}: [https://etherscan.io/address/${addr}](https://etherscan.io/address/${addr})<br/>`
       );
     };
 
