@@ -119,6 +119,13 @@ If you want to deploy to a live test network (Goerli) you should:
 1. Setup environment variables in a file called `.env`. More details can be found in file `env.example`.
 1. Deploy: `npx hardhat run scripts/deploy.ts --network goerli`
 
+### Mainnet deployment
+
+If you want to deploy to a live Ethereum network you should:
+
+1. Setup environment variables in a file called `.env`. More details can be found in file `env.example`.
+1. Deploy: `npx hardhat run scripts/deploy.ts --network mainnet`
+
 The deploy script performes the following actions:
 
 1. Deploys all the needed contracts (including a new instance of XENCrypto)

@@ -25,6 +25,10 @@ const config: HardhatUserConfig = {
       url: process.env.GOERLI_PROVIDER_URL,
       accounts: [process.env.GOERLI_PRIVATE_KEY!],
     },
+    mainnet: {
+      url: process.env.MAINNET_PROVIDER_URL,
+      accounts: [process.env.MAINNET_PRIVATE_KEY!],
+    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
