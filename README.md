@@ -81,9 +81,9 @@ XEL token minting has also a reward multiplier.
 
 XEL is minted based on the amount of XEN claimed times a reward multiplier that is derived from our reward curve.
 
-The reward curve is defined by `0.102586724 * 0.95^x` with `x` being the number of weeks that have passed. To derive the reward multiplier from this curve we need to sum up the multiplier from the curve for each week in which the user has claimed.
+The reward curve is defined by `0.10000026975 * 0.95^x` with `x` being the number of weeks that have passed. To derive the reward multiplier from this curve we need to sum up the multiplier from the curve for each week in which the user has claimed.
 
-This calculation is simplified by providing directly all the summed multiplier combinations. So instead of providing the weekly reward for week 1 `0.102586724 * 0.95^1` and for week 2 `0.102586724 * 0.95^2`; we provide the sum for week 1 `0.102586724 * 0.95^1` week 2 `0.102586724 * 0.95^1 + 0.102586724 * 0.95^2`. If we want to calculate the weekly reward we then simply need to subtract the summed / cumulative reward from week 2 and week 1.
+This calculation is simplified by providing directly all the summed multiplier combinations. So instead of providing the weekly reward for week 1 `0.10000026975 * 0.95^1` and for week 2 `0.10000026975 * 0.95^2`; we provide the sum for week 1 `0.10000026975 * 0.95^1` week 2 `0.10000026975 * 0.95^1 + 0.10000026975 * 0.95^2`. If we want to calculate the weekly reward we then simply need to subtract the summed / cumulative reward from week 2 and week 1.
 
 All of the cumulative rewards are stored in the `cumulativeWeeklyRewardMultiplier` lookup table. Since partial weekly rewards are possible; a floor division is applied to derive the weekly index. To compensate for the floor division we add one weekly reward multiplier by default.
 
